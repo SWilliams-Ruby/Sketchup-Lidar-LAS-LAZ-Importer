@@ -1,2 +1,2 @@
-# Sketrchup-Lidar-LAS-LAZ-Importer
+# Sketchup-Lidar-LAS-LAZ-Importer
 Optional
