@@ -29,7 +29,9 @@ module SW
     end
     load_menus()
     
-      ###################################3
+    
+    # Methods for the Sketchup Importer intereface
+    ###################################3
       # IMPORT_SUCCESS                        = ImportSuccess
       # IMPORT_FAILED                         = ImportFail
       # IMPORT_CANCELLED                      = ImportCanceled

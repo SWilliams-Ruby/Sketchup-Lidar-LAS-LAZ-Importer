@@ -33,7 +33,7 @@ module SW
       puts "\nPublic Header Dump"
       las_file.dump_public_header # debug info
 
-      # Wrap the updates with an on screen progressbar  
+      # Wrap the importation with an on screen progressbar  
       ProgressBarBasicLAS.new {|pbar|
         import_point_records(las_file, ents, pbar)
       }
@@ -44,22 +44,34 @@ module SW
     # Each point will be added to the 'ents' collection as a construction point.
     #
     def self.import_point_records(las_file, ents, pbar)
-      class_counts =[0] *32 # holds a running total of number of points added by classification of point
+      class_counts =[0] *32 # holds a running total of number of points added by classification
       num_point_records = las_file.num_point_records
-      selected_classifications = get_import_options()
+      user_selected_classifications = get_import_options_classes()
 
-      # TODO: read the GEOTiff units from the file
+      # TODO: read the WKT/GEOTiff units from the file
       # and select the appropriate Inches per Unit
       # UNIT["US survey foot",0.3048006096012192] is 30.48 centimeters 
       # 1 Yard (International):: Imperial/US length of 3 feet or 36 inches.
-      # In 1959 defined in terms of metric units as exactly 0.9144 meters.
-      ipu = 12.0 # feet to sketchup inches
-      #ipu = 39.3701 # meters to sketchup inches
+      # In 1959 defined in terms of metric units as exactly   meters.
       
-      las_file.points.each_with_index{|pt, i|
+      if import_options_horizontal_units() == "Meters"
+        ipu_horiz = 39.3701 # meters to sketchup inches
+      else
+        ipu_horiz = 12.0 # feet to sketchup inches
+      end
+      
+      if import_options_vertical_units() == "Meters"
+        ipu_vert = 39.3701
+      else
+        ipu_vert = 12
+      end
+      
+      
+        # las_file.points.take(10).each_with_index{|pt, i| # debug
+        las_file.points.each_with_index{|pt, i|
         ptclass = 0b01 << pt[3]
-        if (selected_classifications & ptclass) != 0  # bitwise classifications 0 through 23
-          ents.add_cpoint([pt[0] * ipu, pt[1] * ipu, pt[2] * ipu])
+        if (user_selected_classifications & ptclass) != 0  # bitwise classifications 0 through 23
+          ents.add_cpoint([pt[0] * ipu_horiz, pt[1] * ipu_horiz, pt[2] * ipu_vert])
           class_counts[pt[3]] += 1
         end
         if pbar.update?

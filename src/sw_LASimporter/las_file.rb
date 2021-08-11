@@ -22,7 +22,7 @@
 #
 # TODO: variable_length_records() => Array of variable_length_records, nil
 #      
-# num_point_records() =>  number of point records in the file (public_header.numPointRecords)
+# num_point_records() =>  number of point records in the file (i.e. public_header.numPointRecords)
 #      
 # fileName() => file_name with path
 #
@@ -149,6 +149,7 @@ module SW
       end
 
 
+      # points() => enumerator
       # Returns an enumerator of the data points in the file
       # as an array of [ X, Y, Z, classification]
       #
@@ -161,6 +162,9 @@ module SW
         scaleX = @public_header.scaleX
         scaleY = @public_header.scaleY
         scaleZ = @public_header.scaleZ
+        offsetX = @public_header.offsetX
+        offsetY = @public_header.offsetY
+        offsetZ = @public_header.offsetZ
         minX = @public_header.minX
         minY = @public_header.minY
         minZ = @public_header.minZ
@@ -186,10 +190,13 @@ module SW
             
             case point_data_record_format
             when 0..5
+            
               result = [
-                record[0..3].unpack('l<')[0] * scaleX - minX,  # X long 4 bytes 
-                record[4..7].unpack('l<')[0] * scaleY - minY,  # Y long 4 bytes
-                record[8..11].unpack('l<')[0] * scaleZ - minZ, # Z long 4 bytes 
+              
+             
+                record[0..3].unpack('l<')[0] * scaleX + offsetX - minX,  # X long 4 bytes 
+                record[4..7].unpack('l<')[0] * scaleY + offsetY - minY,  # Y long 4 bytes
+                record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ, # Z long 4 bytes 
                 #record[12..13].unpack('S')[0],                 # Intensity unsigned short 2 bytes
                 #record[14].unpack('C')[0],                     # Return Number 3 bits (bits 0, 1, 2) 3 bits
                                                                 # Number of Returns (given pulse) 3 bits (bits 3, 4, 5) 3 bits 
@@ -207,10 +214,13 @@ module SW
                 ]
               
               when 6..10 # formats 6 through 10
+               # p record[0..3].unpack('l<')[0] * scaleX
+              # p  record[4..7].unpack('l<')[0] * scaleY
+              # p  record[8..11].unpack('l<')[0] * scaleZ
                 result = [
-                  record[0..3].unpack('l<')[0] * scaleX - minX, # X long 4 bytes 
-                  record[4..7].unpack('l<')[0] * scaleY - minY, # Y long 4 bytes
-                  record[8..11].unpack('l<')[0] * scaleZ - minZ, # Z long 4 bytes 
+                  record[0..3].unpack('l<')[0] * scaleX + offsetX - minX, # X long 4 bytes 
+                  record[4..7].unpack('l<')[0] * scaleY + offsetY - minY, # Y long 4 bytes
+                  record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ, # Z long 4 bytes 
                   #record[12..13].unpack('S')[0],                # Intensity unsigned short 2 bytes
                   #record[14].unpack('C')[0],                    # 
                   #record[15].unpack('C')[0],              

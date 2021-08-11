@@ -43,26 +43,20 @@
 
 module SW
   module LASimporter
-    @import_options = 0b000000000100
-    @import_options_string = "Ground"
+    @import_options_classes = 0b000000000100
+    @import_options_classes_text = "Ground"
+    @import_options_horizontal_units = "Feet"
+    @import_options_vertical_units = "Feet"
 
     def self.set_import_options()
-p 'here'
-      case @import_options
-      when 0b000000000100
-        defaults = ["Ground"]
-      when 0b001000000100
-        defaults = ["Ground & Water"]
-      else
-        defaults = ["All"]
-      end
-
-      prompts = ["Select Layers"]
-      list = ["Ground|Ground & Water|All"]
+      defaults = [@import_options_classes_text, @import_options_horizontal_units, @import_options_vertical_units]
+      prompts = ["Select Layers", "Select Horizontal Units", "Select Vertical Units"]
+      list = ["Ground|Ground & Water|All", "Feet|Meters", "Feet|Meters"]
       input = UI.inputbox(prompts, defaults, list, "LAS importer options")
-      
       if input
-        @import_options_string = input[0]
+        @import_options_classes_text = input[0]
+        @import_options_horizontal_units = input[1]
+        @import_options_vertical_units = input[2]
         case input[0]
         when 'Ground'
           @import_options = 0b000000000100 # layers Ground(2) & Key Points(8)
@@ -75,8 +69,16 @@ p 'here'
     end
     
     
-    def self.get_import_options()
-      @import_options
+    def self.get_import_options_classes()
+      @import_options_classes
+    end
+
+    def self.import_options_horizontal_units()
+      @import_options_horizontal_units
+    end
+    
+    def self.import_options_vertical_units()
+      @import_options_vertical_units
     end
     
   end
