@@ -91,23 +91,22 @@ module SW
           ipu_vert = 12
         end
         
-        
-          # las_file.points.take(10).each_with_index{|pt, i| # debug
-          las_file.points.each_with_index{|pt, i|
-          ptclass = 0b01 << pt[3]
-          if (user_selected_classifications & ptclass) != 0  # bitwise classifications 0 through 23
-            ents.add_cpoint([pt[0] * ipu_horiz, pt[1] * ipu_horiz, pt[2] * ipu_vert])
-            class_counts[pt[3]] += 1
-          end
-          if pbar.update?
-            pbar.label= "Importing #{@import_options_string}    Remaining points: #{num_point_records - i}"
-            pbar.set_value(i * 100.0/num_point_records)
-            pbar.refresh
-          end
-          }
-          puts "\nPoints by Classification"
-          class_counts.each_with_index{|count, i| puts "#{i}: #{count}"}
-          puts "Total points added #{class_counts.inject(0){|sum,x| sum + x }}"
+        # las_file.points.take(10).each_with_index{|pt, i| # debug
+        las_file.points.each_with_index{|pt, i|
+        ptclass = 0b01 << pt[3]
+        if (user_selected_classifications & ptclass) != 0  # bitwise classifications 0 through 23
+          ents.add_cpoint([pt[0] * ipu_horiz, pt[1] * ipu_horiz, pt[2] * ipu_vert])
+          class_counts[pt[3]] += 1
+        end
+        if pbar.update?
+          pbar.label= "Importing #{@import_options_string}    Remaining points: #{num_point_records - i}"
+          pbar.set_value(i * 100.0/num_point_records)
+          pbar.refresh
+        end
+        }
+        puts "\nPoints by Classification"
+        class_counts.each_with_index{|count, i| puts "#{i}: #{count}"}
+        puts "Total points added #{class_counts.inject(0){|sum,x| sum + x }}"
       end
       
     end

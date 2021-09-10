@@ -180,7 +180,7 @@ module SW
         
         # enumerate => array of [ X, Y, Z, point classification]
         count = 0
-        fib = Enumerator.new { |y|
+        Enumerator.new { |y|
           loop {
             break if (count += 1) > num_point_records
             record = file.read(point_data_record_length)

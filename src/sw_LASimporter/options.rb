@@ -46,7 +46,6 @@ module SW
     module Options
 
       def initialize
-      p 'init'
         @import_options_classes = 0b000000000100
         @import_options_classes_text = "Ground"
         @import_options_horizontal_units = "Feet"
@@ -63,11 +62,11 @@ module SW
           @import_options_vertical_units = input[2]
           case input[0]
           when 'Ground'
-            @import_options = 0b000000000100 # layers Ground(2) & Key Points(8)
+            @import_options_classes = 0b000000000100 # layers Ground(2) & Key Points(8)
           when 'Ground & Water'
-             @import_options = 0b001000000100 # add Water(9)
+             @import_options_classes = 0b001000000100 # add Water(9)
           else
-            @import_options = 0x00ffffff # everything up to ptclass 23
+            @import_options_classes = 0x00ffffff # everything up to ptclass 23
           end
         end  
       end
