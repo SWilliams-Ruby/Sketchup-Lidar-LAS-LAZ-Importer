@@ -117,22 +117,7 @@ module SW
         class_counts.each_with_index{|count, i| puts "#{i}: #{count}"}
         puts "Total points added #{class_counts.inject(0){|sum,x| sum + x }}"
       end
-      
-      def add_polygons(ents, points, triangles, start, count)
-        mesh = Geom::PolygonMesh.new
-        points.each{ |pt| mesh.add_point(Geom::Point3d.new(*pt)) }
 
-        (start..(start + count - 1)).each { |i|
-          break if  ((i + 1) * 3) > triangles.size
-          k = i * 3
-          mesh.add_polygon(triangles[k] + 1, triangles[k+1] + 1, triangles[k+2] + 1)
-        }
-
-        #p 'adding faces from mesh'
-        ents.add_faces_from_mesh(mesh)
-        return start + count
-      end
-      
       def triangulate(pbar, file, ents, points)
         #t = Time.now
 
@@ -164,6 +149,22 @@ module SW
           end
         end
       end # triangulate
+      
+      def add_polygons(ents, points, triangles, start, count)
+        mesh = Geom::PolygonMesh.new
+        points.each{ |pt| mesh.add_point(Geom::Point3d.new(*pt)) }
+
+        (start..(start + count - 1)).each { |i|
+          break if  ((i + 1) * 3) > triangles.size
+          k = i * 3
+          mesh.add_polygon(triangles[k+2] + 1, triangles[k+1] + 1, triangles[k] + 1)
+        }
+
+        #p 'adding faces from mesh'
+        ents.add_faces_from_mesh(mesh)
+        return start + count
+      end
+      
       
       def check_requires()
         require 'delaunator'
