@@ -39,6 +39,7 @@ module SW
     class LASimporterError < RuntimeError; end
 
     class LASfile
+      attr_accessor(:file_name)
       @public_header = nil
       @file_name = nil
       
