@@ -128,7 +128,7 @@ module SW
         
         pbar.label = "Reading Point Data"
         pbar.set_value(0.0)
-        refresh_pbar2(pbar, "Remaining points: #{num_point_records}", 0.0)
+        refresh_pbar(pbar, "Remaining points: #{num_point_records}", 0.0)
         
         # las_file.points.take(10).each_with_index{|pt, i| # debug
         las_file.points.each_with_index{|pt, i|
@@ -138,7 +138,7 @@ module SW
             class_counts[pt[3]] += 1
           end
           if pbar.update?
-            refresh_pbar2(pbar, "Remaining points: #{num_point_records - i}",i * 100.0 /  num_point_records)
+            refresh_pbar(pbar, "Remaining points: #{num_point_records - i}",i * 100.0 /  num_point_records)
           end
         }
         
@@ -154,11 +154,11 @@ module SW
         size = points.size
         pbar.label = "Adding Construction Points #{@import_options_classes_text}"
         pbar.set_value(50.0)
-        refresh_pbar2(pbar, "Remaining points: #{size}", 0.0)
+        refresh_pbar(pbar, "Remaining points: #{size}", 0.0)
         points.each_with_index{ |pt, i|
           ents.add_cpoint(pt)
           if pbar.update?
-            refresh_pbar2(pbar, "Remaining points: #{size - i}", \
+            refresh_pbar(pbar, "Remaining points: #{size - i}", \
             i * 100.0/size)
           end
         }
@@ -171,10 +171,10 @@ module SW
         log 'start triangulation'
         pbar.label = "Triangulating Faces"
         pbar.set_value(33.0)
-        refresh_pbar2(pbar, "Please wait", 0.0)
+        refresh_pbar(pbar, "Please wait", 0.0)
         points.uniq!
         coords = points.map { |e| [e[0], e[1]] }
-        triangles = Delaunator.triangulate(coords)
+        triangles = Delaunator.triangulate(coords, pbar)
         log Time.now - t
         triangles
       end
@@ -187,11 +187,11 @@ module SW
         total = triangles.size/3
         pbar.label = "Adding Faces"
         pbar.set_value(66.0)
-        refresh_pbar2(pbar, "Remaining faces: #{total}", 0.0)
+        refresh_pbar(pbar, "Remaining faces: #{total}", 0.0)
         while start < total
           start = add_triangles(pbar, ents, points, triangles, start, count)
           start = total if start > total
-          refresh_pbar2(pbar, "Remaining faces: #{total - start}", start * 100.0/total)
+          refresh_pbar(pbar, "Remaining faces: #{total - start}", start * 100.0/total)
         end
         log Time.now - t
       end
@@ -211,12 +211,6 @@ module SW
       end
       
       def refresh_pbar(pbar, label, value)
-        pbar.label= label
-        pbar.set_value(value)
-        pbar.refresh
-      end
-      
-      def refresh_pbar2(pbar, label, value)
         pbar.label2= label
         pbar.set_value2(value)
         pbar.refresh
