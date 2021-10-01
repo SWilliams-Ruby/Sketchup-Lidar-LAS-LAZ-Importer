@@ -42,7 +42,7 @@ module SW
             grp.name = 'LAS_import'      
             ents = grp.entities
             las_file = read_las_file(file_name_with_path)
-           # las_file.dump_public_header if @verbose# debug info
+            # las_file.dump_public_header if @verbose# debug info
             triangulate = UI.messagebox("Found #{las_file.num_point_records}\nDo you want a triangulated surface?", MB_YESNO) == IDYES
             import_las_file_points(las_file, ents, triangulate)  
           model.commit_operation
@@ -82,18 +82,35 @@ module SW
       def import_las_file_points(las_file, ents, triangulate)
         # Wrap the importation with an on screen progressbar  
         ProgressBarBasicLAS.new {|pbar|
-          import_point_records(las_file, ents, pbar, triangulate)
+          points = import_point_records(las_file, ents, pbar, triangulate)
+          if triangulate == true
+            triangulate(pbar, ents, points) 
+          else
+            add_cpoints(pbar, ents, points)
+          end
+        }
+      end
+      
+      def add_cpoints(pbar, ents, points)
+        size = points.size
+        points.each_with_index{ |pt, i|
+          ents.add_cpoint(pt)
+          if pbar.update?
+            refresh_pbar(pbar, "Importing #{@import_options_classes_text}    Remaining points: #{size - i}", \
+            i * 100.0/size)
+          end
         }
       end
       
       # Import the point records that match the user's import options i.e.
       # the user's choice of which classifications to load (Ground, Water, etc.)
-      # Each point will be added to the 'ents' collection as a construction point.
-      # @param las_file, 
+      # Each point will be added to the 'ents' collection as a construction point,
+      # or as a triangulted surface.
+      # @param las_file [LASfile], 
       # @param ents [Sketchup::Entities]
       # @param pbar [SW::ProgressBarBasic]
       # @param triangulate [Boolean]
-      #
+      # @return array of points [Array]
       def import_point_records(las_file, ents, pbar, triangulate)
         file = las_file.file_name_with_path.split("\\").last
         points = []
@@ -127,50 +144,38 @@ module SW
             class_counts[pt[3]] += 1
           end
         }
-
-        if triangulate == true
-          triangulate(pbar, file, ents, points) 
-        else
-          points.each_with_index{ |pt, i|
-            ents.add_cpoint([pt[0] * ipu_horiz, pt[1] * ipu_horiz, pt[2] * ipu_vert])
-            if pbar.update?
-              refresh_pbar(pbar, "#{file}: Importing #{@import_options_classes_text}    Remaining points: #{num_point_records - i}", \
-              i * 100.0/num_point_records)
-            end
-          }
-        end
         
         log "\nPoints by Classification"
         class_counts.each_with_index{|count, i| log "#{i}: #{count}"}
         log "Total points added #{class_counts.inject(0){|sum,x| sum + x }}"
+        points
       end
 
-      def triangulate(pbar, file, ents, points)
+      def triangulate(pbar, ents, points)
         t = Time.now
         log 'start triangulation'
         points.uniq!
         coords = points.map { |e| [e[0], e[1]] }
         
-        refresh_pbar(pbar, "#{file}: Triangulating Faces", 0.0)
+        refresh_pbar(pbar, "Triangulating Faces", 0.0)
         triangles = Delaunator.triangulate(coords)
-        count = triangles.size/3
+        total = triangles.size/3
         
-        start = 0
-        refresh_pbar(pbar, "#{file}: Adding Faces,  Remaining faces: #{count - start}", 0.0)
+        refresh_pbar(pbar, "Adding Faces,  Remaining faces: #{total}", 0.0)
 
         log Time.now - t
         log 'adding faces'
-        while start < count
-          print '-'
-          start = add_polygons(ents, points, triangles, start, 5000)
-          if pbar.update? && start < count
-             refresh_pbar(pbar, "#{file}: Adding Faces,  Remaining faces: #{count - start}", start * 100.0/count)
-          end
+        start = 0
+        while start < total
+          #print '-'
+          start = add_polygons(pbar, ents, points, triangles, start, 2000, total)
+          start = total if start > total
+          refresh_pbar(pbar, "Adding Faces,  Remaining faces: #{total - start}", start * 100.0/total)
         end
         log Time.now - t
       end # triangulate
       
-      def add_polygons(ents, points, triangles, start, count)
+      def add_polygons(pbar, ents, points, triangles, start, count, total)
         mesh = Geom::PolygonMesh.new
         points.each{ |pt| mesh.add_point(Geom::Point3d.new(*pt)) }
 
@@ -179,7 +184,6 @@ module SW
           k = i * 3
           mesh.add_polygon(triangles[k+2] + 1, triangles[k+1] + 1, triangles[k] + 1)
         }
-
         ents.add_faces_from_mesh(mesh)
         return start + count
       end
