@@ -24,7 +24,7 @@
 #      
 # num_point_records() =>  number of point records in the file (i.e. public_header.numPointRecords)
 #      
-# fileName() => file_name with path
+# file_name_with_path => file_name_with_path 
 #
 # points() => Returns an enumerator of the data points in the file
 #      points take the format: [ X, Y, Z, point classification]
@@ -39,17 +39,17 @@ module SW
     class LASimporterError < RuntimeError; end
 
     class LASfile
-      attr_accessor(:file_name)
+      attr_accessor(:file_name_with_path)
       @public_header = nil
-      @file_name = nil
+      @file_name_with_path = nil
       
       # Read the Public Header and
       # Variable Length Records
       # Raises LASimporterError
       #
-      def initialize(file_name)
+      def initialize(file_name_with_path)
         # save the path
-        @file_name = file_name
+        @file_name_with_path = file_name_with_path
         
         # Open in binary mode with no encoding.
         filemode = 'rb'
@@ -58,7 +58,7 @@ module SW
         end
         
         # check the file version
-        File.open(file_name, filemode) {|file|
+        File.open(file_name_with_path, filemode) {|file|
           file.seek(24, IO::SEEK_SET)
           major_version = file.read(1).unpack('C')[0]
           minor_version = file.read(1).unpack('C')[0]
@@ -144,12 +144,7 @@ module SW
       def public_header()
         @public_header
       end
-      
-      def fileName()
-        @file_name
-      end
-
-
+ 
       # points() => enumerator
       # Returns an enumerator of the data points in the file
       # as an array of [ X, Y, Z, classification]
@@ -175,7 +170,7 @@ module SW
         if RUBY_VERSION.to_f > 1.8
           filemode << ':ASCII-8BIT'
         end
-        file = File.open(@file_name, filemode)
+        file = File.open(@file_name_with_path, filemode)
         file.seek(offset_to_point_data_records, IO::SEEK_SET)
         
         
