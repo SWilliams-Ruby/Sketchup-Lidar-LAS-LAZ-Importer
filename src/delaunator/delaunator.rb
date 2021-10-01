@@ -1,6 +1,3 @@
-require 'delaunator/version'
-require 'delaunator/triangulator'
-
 module Delaunator
   def self.triangulate(points)
     coords = points.flatten

@@ -31,7 +31,7 @@ module SW
     
       def load_file(file_name_with_path, status)
         return if file_name_with_path.nil?
-        return unless check_for_dependencies() # check for the Delunator Gem
+        #return unless check_for_dependencies() # check for the Delunator Gem
         
         begin
           model = Sketchup.active_model
@@ -227,14 +227,14 @@ module SW
         puts text if @@verbose
       end
       
-      def check_for_dependencies()
-        require 'delaunator'
-        return true
-        rescue LoadError
-          result = UI.messagebox("The the LAS Importer program needs the Delaunator gem to run. Paste this into the ruby console to install the gem\nGem.install 'delaunator'", MB_OK)
-          puts "Copy this > Gem.install 'delaunator'"
-        return false
-      end
+      # def check_for_dependencies()
+        # require 'delaunator'
+        # return true
+        # rescue LoadError
+          # result = UI.messagebox("The the LAS Importer program needs the Delaunator gem to run. Paste this into the ruby console to install the gem\nGem.install 'delaunator'", MB_OK)
+          # puts "Copy this > Gem.install 'delaunator'"
+        # return false
+      # end
       
     end
     Sketchup.register_importer(LASimporter.new)
