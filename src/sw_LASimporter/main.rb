@@ -31,7 +31,7 @@ module SW
     
       def load_file(file_name_with_path, status)
         return if file_name_with_path.nil?
-        return unless check_for_required_namespaces() # check for the Delunator Gem
+        return unless check_for_dependencies() # check for the Delunator Gem
         
         begin
           model = Sketchup.active_model
@@ -78,26 +78,16 @@ module SW
       # a triangulated surface into the entities collection
       # @param las_file [LASfile]
       # @param ents [Sketchup::Entities]
+      # @param triangulate [Boolean]
       #
       def import_las_file_points(las_file, ents, triangulate)
-        # Wrap the importation with an on screen progressbar  
         ProgressBarBasicLAS.new {|pbar|
-          points = import_point_records(las_file, ents, pbar, triangulate)
+          points = import_point_records(pbar, las_file, ents, triangulate)
           if triangulate == true
-            triangulate(pbar, ents, points) 
+            triangles = triangulate(pbar, ents, points) 
+            add_surface(pbar, ents, points, triangles) 
           else
             add_cpoints(pbar, ents, points)
-          end
-        }
-      end
-      
-      def add_cpoints(pbar, ents, points)
-        size = points.size
-        points.each_with_index{ |pt, i|
-          ents.add_cpoint(pt)
-          if pbar.update?
-            refresh_pbar(pbar, "Importing #{@import_options_classes_text}    Remaining points: #{size - i}", \
-            i * 100.0/size)
           end
         }
       end
@@ -111,18 +101,19 @@ module SW
       # @param pbar [SW::ProgressBarBasic]
       # @param triangulate [Boolean]
       # @return array of points [Array]
-      def import_point_records(las_file, ents, pbar, triangulate)
+      #
+      # TODO: read the WKT/GEOTiff units from the file
+      # and select the appropriate Inches per Unit
+      # UNIT["US survey foot",0.3048006096012192] is 30.48 centimeters 
+      # 1 Yard (International):: Imperial/US length of 3 feet or 36 inches.
+      # In 1959 defined in terms of metric units as exactly   meters.
+      #
+      def import_point_records(pbar, las_file, ents, triangulate)
         file = las_file.file_name_with_path.split("\\").last
         points = []
         class_counts =[0] *32 # holds a running total of number of points added by classification
         num_point_records = las_file.num_point_records
         user_selected_classifications = get_import_options_classes()
-
-        # TODO: read the WKT/GEOTiff units from the file
-        # and select the appropriate Inches per Unit
-        # UNIT["US survey foot",0.3048006096012192] is 30.48 centimeters 
-        # 1 Yard (International):: Imperial/US length of 3 feet or 36 inches.
-        # In 1959 defined in terms of metric units as exactly   meters.
         
         if import_options_horizontal_units() == "Meters"
           ipu_horiz = 39.3701 # meters to sketchup inches
@@ -151,37 +142,55 @@ module SW
         points
       end
 
+      # add points to mopdel as construction points
+      #
+      def add_cpoints(pbar, ents, points)
+        size = points.size
+        points.each_with_index{ |pt, i|
+          ents.add_cpoint(pt)
+          if pbar.update?
+            refresh_pbar(pbar, "Importing #{@import_options_classes_text}    Remaining points: #{size - i}", \
+            i * 100.0/size)
+          end
+        }
+      end
+
+      # triangulate points
+      #
       def triangulate(pbar, ents, points)
         t = Time.now
         log 'start triangulation'
+        refresh_pbar(pbar, "Triangulating Faces", 0.0)
         points.uniq!
         coords = points.map { |e| [e[0], e[1]] }
-        
-        refresh_pbar(pbar, "Triangulating Faces", 0.0)
         triangles = Delaunator.triangulate(coords)
-        total = triangles.size/3
-        
-        refresh_pbar(pbar, "Adding Faces,  Remaining faces: #{total}", 0.0)
-
         log Time.now - t
+        triangles
+      end
+      
+      def add_surface(pbar, ents, points, triangles)
+        t = Time.now      
         log 'adding faces'
+        refresh_pbar(pbar, "Adding Faces,  Remaining faces: #{total}", 0.0)
         start = 0
+        count = 2000
+        total = triangles.size/3
         while start < total
-          #print '-'
-          start = add_polygons(pbar, ents, points, triangles, start, 2000, total)
+          start = add_triangles(pbar, ents, points, triangles, start, count)
           start = total if start > total
           refresh_pbar(pbar, "Adding Faces,  Remaining faces: #{total - start}", start * 100.0/total)
         end
         log Time.now - t
-      end # triangulate
+      end
       
-      def add_polygons(pbar, ents, points, triangles, start, count, total)
-        mesh = Geom::PolygonMesh.new
+      # Add 'count' triangles to the model
+      #
+      def add_triangles(pbar, ents, points, triangles, start, count)
+        mesh = Geom::PolygonMesh.new(points.size, count)
         points.each{ |pt| mesh.add_point(Geom::Point3d.new(*pt)) }
-
         (start..(start + count - 1)).each { |i|
-          break if  ((i + 1) * 3) > triangles.size
           k = i * 3
+          break if k + 3 > triangles.size
           mesh.add_polygon(triangles[k+2] + 1, triangles[k+1] + 1, triangles[k] + 1)
         }
         ents.add_faces_from_mesh(mesh)
@@ -198,7 +207,7 @@ module SW
         puts text if @@verbose
       end
       
-      def check_for_required_namespaces()
+      def check_for_dependencies()
         require 'delaunator'
         return true
         rescue LoadError
