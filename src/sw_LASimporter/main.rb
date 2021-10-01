@@ -171,10 +171,10 @@ module SW
       def add_surface(pbar, ents, points, triangles)
         t = Time.now      
         log 'adding faces'
-        refresh_pbar(pbar, "Adding Faces,  Remaining faces: #{total}", 0.0)
         start = 0
         count = 2000
         total = triangles.size/3
+        refresh_pbar(pbar, "Adding Faces,  Remaining faces: #{total}", 0.0)
         while start < total
           start = add_triangles(pbar, ents, points, triangles, start, count)
           start = total if start > total
