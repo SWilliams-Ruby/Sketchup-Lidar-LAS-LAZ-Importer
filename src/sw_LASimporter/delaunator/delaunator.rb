@@ -1,7 +1,7 @@
 module Delaunator
-  def self.triangulate(points)
+  def self.triangulate(points, pbar)
     coords = points.flatten
-    Delaunator::Triangulator.new(coords).triangulate
+    Delaunator::Triangulator.new(coords).triangulate(pbar)
   end
 
   def self.validate(points)

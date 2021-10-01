@@ -20,8 +20,14 @@ module Delaunator
       @hull_tri = Array.new(@n, 0)
       @hull_hash = Array.new(@hash_size, -1)
     end
+      
+    def refresh_pbar(pbar, label, value)
+      pbar.label2= label
+      pbar.set_value2(value)
+      pbar.refresh
+    end
 
-    def triangulate
+    def triangulate(pbar)
       dists = Array.new(@n, 0.0)
       ids = Array.new(@n, 0)
       min_x = Float::INFINITY
@@ -152,9 +158,13 @@ module Delaunator
       xp = 0
       yp = 0
 
-### the slow part      
+### the slow part            
+      size = ids.length
       (0..ids.length - 1).each_with_index do |k, i|
-# p i if i%1000 == 0
+        if pbar.update?
+          refresh_pbar(pbar, "Remaining points: #{size - i}", \
+          i * 100.0/size)
+        end
         i = ids[k]
         x = @coords[2 * i]
         y = @coords[2 * i + 1]
@@ -426,9 +436,9 @@ module Delaunator
   end
 end
 
-class Array
-  def swap!(a, b)
-    self[a], self[b] = self[b], self[a]
-    self
-  end
-end
+# class Array
+  # def swap!(a, b)
+    # self[a], self[b] = self[b], self[a]
+    # self
+  # end
+# end
