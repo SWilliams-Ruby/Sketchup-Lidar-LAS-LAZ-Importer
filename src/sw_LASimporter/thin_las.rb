@@ -3,9 +3,9 @@ module SW
     module ThinLas
       def thin(points, pbar, reduce_percent)
         #reduce_percent = 0.15
-        pbar.label = "Thinning Data Set by #{(1 - reduce_percent) * 100}%"
+        pbar.label = "Total Progress"
         pbar.set_value(0.0)
-        refresh_pbar(pbar, "Plese Wait", 0.0)
+        refresh_pbar(pbar, "Thinning Data Set by #{(1 - reduce_percent) * 100}%", 0.0)
         
         p desired_size = points.size * reduce_percent
         p cell_count = Math.sqrt(desired_size).to_i

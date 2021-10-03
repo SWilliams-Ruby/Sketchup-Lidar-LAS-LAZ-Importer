@@ -47,7 +47,7 @@ module SW
             # open_choices_dialog()
             # BackGrounder.load_las_points(las_file)
             
-            triangulate, thin = get_options()
+            triangulate, thin = get_options(las_file.num_point_records)
             #p options = triangulate = UI.messagebox("Found #{las_file.num_point_records}\nDo you want a triangulated surface?", MB_YESNO) == IDYES
             import_las_file_points(las_file, ents, triangulate, thin)  
           model.commit_operation
@@ -67,11 +67,11 @@ module SW
         end
       end
 
-      def get_options()
+      def get_options(num_point_records)
         prompts = ["Triangulate Points", "Thin to"]
         defaults = ["Yes", "Full Size"]
         list = ["Yes|No", "Full Size|50%|20%|10%|1%|0.1%"]
-        p input = UI.inputbox(prompts, defaults, list, "LAS importer options")
+        p input = UI.inputbox(prompts, defaults, list, "Found #{num_point_records} points")
         triangulate = input[0] == 'Yes'
         case input[1]
         when '0.1%'
@@ -157,9 +157,9 @@ module SW
           ipu_vert = 12
         end
         
-        pbar.label = "Reading Point Data"
+        pbar.label = "Total Progress"
         pbar.set_value(0.0)
-        refresh_pbar(pbar, "Remaining points: #{num_point_records}", 0.0)
+        refresh_pbar(pbar, "Reading Point Data, Remaining points: #{num_point_records}", 0.0)
         
         # las_file.points.take(10).each_with_index{|pt, i| # debug
         las_file.points.each_with_index{|pt, i|
@@ -169,7 +169,7 @@ module SW
             class_counts[pt[3]] += 1
           end
           if pbar.update?
-            refresh_pbar(pbar, "Remaining points: #{num_point_records - i}",i * 100.0 /  num_point_records)
+            refresh_pbar(pbar, "Reading Point Data, Remaining points: #{num_point_records - i}",i * 100.0 /  num_point_records)
           end
         }
         
@@ -183,13 +183,13 @@ module SW
       #
       def add_cpoints(pbar, ents, points)
         size = points.size
-        pbar.label = "Adding Construction Points #{@import_options_classes_text}"
+        pbar.label = "Total Progress"
         pbar.set_value(50.0)
-        refresh_pbar(pbar, "Remaining points: #{size}", 0.0)
+        refresh_pbar(pbar, "Adding Construction Points, Remaining points: #{size}", 0.0)
         points.each_with_index{ |pt, i|
           ents.add_cpoint(pt)
           if pbar.update?
-            refresh_pbar(pbar, "Remaining points: #{size - i}", \
+            refresh_pbar(pbar, "Adding Construction Points, Remaining points: #{size - i}", \
             i * 100.0/size)
           end
         }
@@ -200,9 +200,9 @@ module SW
       def triangulate(pbar, ents, points)
         t = Time.now
         log 'start triangulation'
-        pbar.label = "Triangulating Faces"
+        pbar.label = "Total Progress"
         pbar.set_value(33.0)
-        refresh_pbar(pbar, "Please wait", 0.0)
+        refresh_pbar(pbar, "Triangulating Faces, Please wait", 0.0)
         points.uniq!
         coords = points.map { |e| [e[0], e[1]] }
         triangles = Delaunator.triangulate(coords, pbar)
@@ -216,13 +216,13 @@ module SW
         start = 0
         count = 2000
         total = triangles.size/3
-        pbar.label = "Adding Faces"
+        pbar.label = "Total Progress"
         pbar.set_value(66.0)
-        refresh_pbar(pbar, "Remaining faces: #{total}", 0.0)
+        refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total}", 0.0)
         while start < total
           start = add_triangles(pbar, ents, points, triangles, start, count)
           start = total if start > total
-          refresh_pbar(pbar, "Remaining faces: #{total - start}", start * 100.0/total)
+          refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total - start}", start * 100.0/total)
         end
         log Time.now - t
       end
