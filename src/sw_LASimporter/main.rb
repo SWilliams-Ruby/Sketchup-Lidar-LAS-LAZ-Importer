@@ -7,6 +7,8 @@ module SW
   module LASimporter
     class LASimporter < Sketchup::Importer
       include SW::LASimporter::Options
+      include SW::LASimporter::ThinLas
+      include SW::LASimporter::ImportChoices
       @@verbose = true
       
       def description
@@ -42,8 +44,12 @@ module SW
             ents = grp.entities
             las_file = read_las_file(file_name_with_path)
             # las_file.dump_public_header if @verbose# debug info
-            triangulate = UI.messagebox("Found #{las_file.num_point_records}\nDo you want a triangulated surface?", MB_YESNO) == IDYES
-            import_las_file_points(las_file, ents, triangulate)  
+            # open_choices_dialog()
+            # BackGrounder.load_las_points(las_file)
+            
+            triangulate, thin = get_options()
+            #p options = triangulate = UI.messagebox("Found #{las_file.num_point_records}\nDo you want a triangulated surface?", MB_YESNO) == IDYES
+            import_las_file_points(las_file, ents, triangulate, thin)  
           model.commit_operation
           
           if grp.deleted? || ents.size == 0
@@ -59,7 +65,32 @@ module SW
           # User error message here
           raise exception
         end
-      end    
+      end
+
+      def get_options()
+        prompts = ["Triangulate Points", "Thin to"]
+        defaults = ["Yes", "Full Size"]
+        list = ["Yes|No", "Full Size|50%|20%|10%|1%|0.1%"]
+        p input = UI.inputbox(prompts, defaults, list, "LAS importer options")
+        triangulate = input[0] == 'Yes'
+        case input[1]
+        when '0.1%'
+          thin = 0.001
+        when '1%'
+          thin = 0.01
+        when '10%'
+          thin = 0.1
+        when '20%'
+          thin = 0.2
+        when '50%'
+          thin = 0.5
+        else
+          thin = nil
+        end
+        p triangulate
+        p thin
+        [triangulate, thin]
+      end
       
       # Populate the LASfile structure from a *.las file
       # @param file_name_with_path [String]
@@ -68,8 +99,7 @@ module SW
       def read_las_file(file_name_with_path)
         log "Importing #{file_name_with_path}"
         las_file = LASfile.new(file_name_with_path)
-        log("\Found #{las_file.num_point_records} point data records")
-        log("\nPublic Header Dump")
+        log("\nFound #{las_file.num_point_records} point data records")
         las_file
       end
    
@@ -79,9 +109,10 @@ module SW
       # @param ents [Sketchup::Entities]
       # @param triangulate [Boolean]
       #
-      def import_las_file_points(las_file, ents, triangulate)
+      def import_las_file_points(las_file, ents, triangulate, thin)
         ProgressBarBasicLASDoubleBar.new {|pbar|
           points = import_point_records(pbar, las_file, ents, triangulate)
+          points = thin(points, pbar, thin) if thin
           if triangulate == true
             triangles = triangulate(pbar, ents, points) 
             add_surface(pbar, ents, points, triangles) 

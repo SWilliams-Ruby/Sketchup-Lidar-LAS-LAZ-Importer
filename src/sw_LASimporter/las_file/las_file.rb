@@ -42,7 +42,9 @@ module SW
       attr_accessor(:file_name_with_path)
       @public_header = nil
       @file_name_with_path = nil
-      
+      @loaded_points = nil
+      @las_data = nil
+
       # Read the Public Header and
       # Variable Length Records
       # Raises LASimporterError
@@ -70,6 +72,11 @@ module SW
           # read the blocks
           read_public_header(file, minor_version)
           read_variable_length_records(file, minor_version)
+          
+          # read the data
+          file.seek(@public_header.offset_to_point_data_records, IO::SEEK_SET)
+          @las_data = file.read
+          p @las_data.length
         }
       end # initialize
       
@@ -144,6 +151,22 @@ module SW
       def public_header()
         @public_header
       end
+      
+      def load_points()
+        @loaded_points = nil
+        @loaded_points = points.collect.each_with_index { |pt, i| 
+          if i % 1000 == 0        
+            Sigint_Trap_for_LASimporter.add_message(Time.now) if SW::LASimporter.const_defined?(:Sigint_Trap_for_LASimporter)
+          end
+          pt
+        }
+        @loaded_points [] unless @loaded_points 
+        return 'zzz' +Time.now.to_s
+      end
+      
+      def loaded_points()
+        @loaded_points
+      end
  
       # points() => enumerator
       # Returns an enumerator of the data points in the file
@@ -170,19 +193,27 @@ module SW
         if RUBY_VERSION.to_f > 1.8
           filemode << ':ASCII-8BIT'
         end
+        
         file = File.open(@file_name_with_path, filemode)
         file.seek(offset_to_point_data_records, IO::SEEK_SET)
         
+        # data = File.open(@file_name_with_path, filemode) {|f|
+          # f.seek(offset_to_point_data_records, IO::SEEK_SET)
+          # f.read
+        # }
         
         # enumerate => array of [ X, Y, Z, point classification]
         count = 0
+        #index = 0
         Enumerator.new { |y|
           loop {
             break if (count += 1) > num_point_records
             record = file.read(point_data_record_length)
+            # record = data[index...(index + point_data_record_length)]
+            # index += point_data_record_length
             
             # dump the record as a Hex string
-            # p record.each_byte.map { |b| b.to_s(16) }.join
+            # record.each_byte.map { |b| b.to_s(16) }.join
             
             case point_data_record_format
             when 0..5
@@ -210,9 +241,6 @@ module SW
                 ]
               
               when 6..10 # formats 6 through 10
-               # p record[0..3].unpack('l<')[0] * scaleX
-              # p  record[4..7].unpack('l<')[0] * scaleY
-              # p  record[8..11].unpack('l<')[0] * scaleZ
                 result = [
                   record[0..3].unpack('l<')[0] * scaleX + offsetX - minX, # X long 4 bytes 
                   record[4..7].unpack('l<')[0] * scaleY + offsetY - minY, # Y long 4 bytes

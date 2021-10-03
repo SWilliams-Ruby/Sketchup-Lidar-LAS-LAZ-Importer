@@ -1,8 +1,8 @@
 module SW
   module LASimporter
     module ThinLas
-      def thin(points, pbar)
-        reduce_percent = 0.15
+      def thin(points, pbar, reduce_percent)
+        #reduce_percent = 0.15
         pbar.label = "Thinning Data Set by #{(1 - reduce_percent) * 100}%"
         pbar.set_value(0.0)
         refresh_pbar(pbar, "Plese Wait", 0.0)
