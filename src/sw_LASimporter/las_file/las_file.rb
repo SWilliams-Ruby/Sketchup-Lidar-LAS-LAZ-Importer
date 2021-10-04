@@ -43,7 +43,7 @@ module SW
       @public_header = nil
       @file_name_with_path = nil
       @loaded_points = nil
-      @las_data = nil
+      # @las_data = nil
 
       # Read the Public Header and
       # Variable Length Records
@@ -75,8 +75,8 @@ module SW
           
           # read the data
           file.seek(@public_header.offset_to_point_data_records, IO::SEEK_SET)
-          @las_data = file.read
-          p @las_data.length
+          # @las_data = file.read
+          #p @las_data.length
         }
       end # initialize
       
@@ -112,34 +112,34 @@ module SW
       # Read the variable length records
       # currently these are just dumped to the console
       def read_variable_length_records(file, minor_version)
-        case minor_version
-          when 0..3
-            file.seek(227, IO::SEEK_SET) # start of variable length records
-              @public_header.num_VLRecs.times {|i|
-              puts "\nVariable Length Record #{i+1} of #{@public_header.num_VLRecs}"
-              p reserved = file.read(2).unpack('S')[0]
-              p user_ID = file.read(16)
-              p record_ID = file.read(2).unpack('S')[0]
-              p record_length_after_header = file.read(2).unpack('S')[0]
-              p desc = file.read(32)
-              p contents = file.read(record_length_after_header)
-            }
+        # case minor_version
+          # when 0..3
+            # file.seek(227, IO::SEEK_SET) # start of variable length records
+              # @public_header.num_VLRecs.times {|i|
+              # puts "\nVariable Length Record #{i+1} of #{@public_header.num_VLRecs}"
+              # p reserved = file.read(2).unpack('S')[0]
+              # p user_ID = file.read(16)
+              # p record_ID = file.read(2).unpack('S')[0]
+              # p record_length_after_header = file.read(2).unpack('S')[0]
+              # p desc = file.read(32)
+              # p contents = file.read(record_length_after_header)
+            # }
              
-          when 4
-            file.seek(@public_header.start_EVL, IO::SEEK_SET) # start of variable length records
-            @public_header.num_EVL.times {|i|
-              puts "\nVariable Length Record #{i+1} of #{@public_header.num_EVL}"
-              p reserved = file.read(2).unpack('S')[0]
-              p user_ID = file.read(16)
-              p record_ID = file.read(2).unpack('S')[0]
-              p record_length_after_header = file.read(2).unpack('S')[0]
-              p desc = file.read(32)
-              p contents = file.read(record_length_after_header)
-            }
+          # when 4
+            # file.seek(@public_header.start_EVL, IO::SEEK_SET) # start of variable length records
+            # @public_header.num_EVL.times {|i|
+              # puts "\nVariable Length Record #{i+1} of #{@public_header.num_EVL}"
+              # p reserved = file.read(2).unpack('S')[0]
+              # p user_ID = file.read(16)
+              # p record_ID = file.read(2).unpack('S')[0]
+              # p record_length_after_header = file.read(2).unpack('S')[0]
+              # p desc = file.read(32)
+              # p contents = file.read(record_length_after_header)
+            # }
 
-          else 
-            raise LASimporterError, "LAS file version #{major_version}.#{minor_version} is not supported (yet)."
-          end 
+          # else 
+            # raise LASimporterError, "LAS file version #{major_version}.#{minor_version} is not supported (yet)."
+          # end 
       end
 
       
@@ -152,21 +152,21 @@ module SW
         @public_header
       end
       
-      def load_points()
-        @loaded_points = nil
-        @loaded_points = points.collect.each_with_index { |pt, i| 
-          if i % 1000 == 0        
-            Sigint_Trap_for_LASimporter.add_message(Time.now) if SW::LASimporter.const_defined?(:Sigint_Trap_for_LASimporter)
-          end
-          pt
-        }
-        @loaded_points [] unless @loaded_points 
-        return 'zzz' +Time.now.to_s
-      end
+      # def load_points()
+        # @loaded_points = nil
+        # @loaded_points = points.collect.each_with_index { |pt, i| 
+          # if i % 1000 == 0        
+            # Sigint_Trap_for_LASimporter.add_message(Time.now) if SW::LASimporter.const_defined?(:Sigint_Trap_for_LASimporter)
+          # end
+          # pt
+        # }
+        # @loaded_points [] unless @loaded_points 
+        # return 'zzz' +Time.now.to_s
+      # end
       
-      def loaded_points()
-        @loaded_points
-      end
+      # def loaded_points()
+        # @loaded_points
+      # end
  
       # points() => enumerator
       # Returns an enumerator of the data points in the file
