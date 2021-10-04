@@ -43,13 +43,18 @@ module SW
             grp.name = 'LAS_import'      
             ents = grp.entities
             las_file = read_las_file(file_name_with_path)
+            
             # las_file.dump_public_header if @verbose# debug info
             # open_choices_dialog()
             # BackGrounder.load_las_points(las_file)
             
-            triangulate, thin = get_options(las_file.num_point_records)
-            #p options = triangulate = UI.messagebox("Found #{las_file.num_point_records}\nDo you want a triangulated surface?", MB_YESNO) == IDYES
-            import_las_file_points(las_file, ents, triangulate, thin)  
+            type, thin = get_options(las_file.num_point_records)
+            
+            unless type == :cancel # false is a Cancel
+              import_las_file_points(las_file, ents, type, thin) if type
+            else
+              log 'Import Canceled'
+            end
           model.commit_operation
           
           if grp.deleted? || ents.size == 0
@@ -68,11 +73,20 @@ module SW
       end
 
       def get_options(num_point_records)
-        prompts = ["Triangulate Points", "Thin to"]
-        defaults = ["Yes", "Full Size"]
-        list = ["Yes|No", "Full Size|50%|20%|10%|1%|0.1%"]
-        p input = UI.inputbox(prompts, defaults, list, "Found #{num_point_records} points")
-        triangulate = input[0] == 'Yes'
+        prompts = ["Import Type", "Thin to"]
+        defaults = ["Surface", "Full Size"]
+        list = ["Surface|CPoints", "Full Size|50%|20%|10%|1%|0.1%"]
+        input = UI.inputbox(prompts, defaults, list, "Found #{num_point_records} points")
+        return :cancel unless input
+        case input[0]
+        when 'Surface'
+          type = :surface
+        # when 'Crosses'
+          # type = :crosses
+        else 
+          type = :cpoints
+        end
+        
         case input[1]
         when '0.1%'
           thin = 0.001
@@ -87,9 +101,7 @@ module SW
         else
           thin = nil
         end
-        p triangulate
-        p thin
-        [triangulate, thin]
+        [type, thin]
       end
       
       # Populate the LASfile structure from a *.las file
@@ -97,9 +109,8 @@ module SW
       # @return [LASfile]
       #
       def read_las_file(file_name_with_path)
-        log "Importing #{file_name_with_path}"
         las_file = LASfile.new(file_name_with_path)
-        log("\nFound #{las_file.num_point_records} point data records")
+        log("Found #{las_file.num_point_records} point data records")
         las_file
       end
    
@@ -107,17 +118,18 @@ module SW
       # a triangulated surface into the entities collection
       # @param las_file [LASfile]
       # @param ents [Sketchup::Entities]
-      # @param triangulate [Boolean]
+      # @param type [String]
       #
-      def import_las_file_points(las_file, ents, triangulate, thin)
+      def import_las_file_points(las_file, ents, type, thin)
         ProgressBarBasicLASDoubleBar.new {|pbar|
-          points = import_point_records(pbar, las_file, ents, triangulate)
+          points = import_point_records(pbar, las_file, ents, type)
+          return if points.size == 0
           points = thin(points, pbar, thin) if thin
-          if triangulate == true
+          if type == :surface
             triangles = triangulate(pbar, ents, points) 
             add_surface(pbar, ents, points, triangles) 
           else
-            add_cpoints(pbar, ents, points)
+            add_points(pbar, ents, points, type)
           end
         }
       end
@@ -175,19 +187,26 @@ module SW
         
         log "\nPoints by Classification"
         class_counts.each_with_index{|count, i| log "#{i}: #{count}"}
-        log "Total points added #{class_counts.inject(0){|sum,x| sum + x }}"
+        log "Total points Matching Classifications #{class_counts.inject(0){|sum,x| sum + x }}"
         points
       end
 
       # add points to mopdel as construction points
       #
-      def add_cpoints(pbar, ents, points)
+      def add_points(pbar, ents, points, type)
         size = points.size
         pbar.label = "Total Progress"
         pbar.set_value(50.0)
-        refresh_pbar(pbar, "Adding Construction Points, Remaining points: #{size}", 0.0)
+        refresh_pbar(pbar, "Adding Points, Remaining points: #{size}", 0.0)
         points.each_with_index{ |pt, i|
-          ents.add_cpoint(pt)
+          # if type == :cpoints
+            ents.add_cpoint(pt)
+          # else
+            # len = 5
+            # ents.add_edges([pt[0]-len,pt[1],pt[2]], [pt[0]+len,pt[1],pt[2]])
+            # ents.add_edges([pt[0],pt[1]-len,pt[2]], [pt[0],pt[1]+len,pt[2]])
+            # ents.add_edges([pt[0],pt[1],pt[2]-len], [pt[0],pt[1],pt[2]+len])
+          # end
           if pbar.update?
             refresh_pbar(pbar, "Adding Construction Points, Remaining points: #{size - i}", \
             i * 100.0/size)
@@ -198,21 +217,17 @@ module SW
       # triangulate points
       #
       def triangulate(pbar, ents, points)
-        t = Time.now
-        log 'start triangulation'
         pbar.label = "Total Progress"
         pbar.set_value(33.0)
         refresh_pbar(pbar, "Triangulating Faces, Please wait", 0.0)
         points.uniq!
         coords = points.map { |e| [e[0], e[1]] }
         triangles = Delaunator.triangulate(coords, pbar)
-        log Time.now - t
         triangles
       end
       
       def add_surface(pbar, ents, points, triangles)
-        t = Time.now      
-        log 'adding faces'
+        # log 'adding faces'
         start = 0
         count = 2000
         total = triangles.size/3
@@ -224,7 +239,6 @@ module SW
           start = total if start > total
           refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total - start}", start * 100.0/total)
         end
-        log Time.now - t
       end
       
       # Add 'count' triangles to the model
