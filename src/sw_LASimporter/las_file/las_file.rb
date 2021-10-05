@@ -43,7 +43,6 @@ module SW
       @public_header = nil
       @file_name_with_path = nil
       @loaded_points = nil
-      # @las_data = nil
 
       # Read the Public Header and
       # Variable Length Records
@@ -152,26 +151,6 @@ module SW
         @public_header
       end
       
-      # def load_points()
-        # @loaded_points = nil
-        # @loaded_points = points.collect.each_with_index { |pt, i| 
-          # if i % 1000 == 0        
-            # Sigint_Trap_for_LASimporter.add_message(Time.now) if SW::LASimporter.const_defined?(:Sigint_Trap_for_LASimporter)
-          # end
-          # pt
-        # }
-        # @loaded_points [] unless @loaded_points 
-        # return 'zzz' +Time.now.to_s
-      # end
-      
-      # def loaded_points()
-        # @loaded_points
-      # end
- 
-      # points() => enumerator
-      # Returns an enumerator of the data points in the file
-      # as an array of [ X, Y, Z, classification]
-      #
       def points()
         # parameters from the PUBLIC HEADER
         offset_to_point_data_records = @public_header.offset_to_point_data_records
@@ -197,11 +176,6 @@ module SW
         file = File.open(@file_name_with_path, filemode)
         file.seek(offset_to_point_data_records, IO::SEEK_SET)
         
-        # data = File.open(@file_name_with_path, filemode) {|f|
-          # f.seek(offset_to_point_data_records, IO::SEEK_SET)
-          # f.read
-        # }
-        
         # enumerate => array of [ X, Y, Z, point classification]
         count = 0
         #index = 0
@@ -209,11 +183,6 @@ module SW
           loop {
             break if (count += 1) > num_point_records
             record = file.read(point_data_record_length)
-            # record = data[index...(index + point_data_record_length)]
-            # index += point_data_record_length
-            
-            # dump the record as a Hex string
-            # record.each_byte.map { |b| b.to_s(16) }.join
             
             case point_data_record_format
             when 0..5

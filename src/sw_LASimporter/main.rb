@@ -8,8 +8,11 @@ module SW
     class LASimporter < Sketchup::Importer
       include SW::LASimporter::Options
       include SW::LASimporter::ThinLas
-      include SW::LASimporter::ImportChoices
       @@verbose = true
+      
+      def version()
+        '1.0.0'
+      end
       
       def description
         return "Lidar las Importer (*.las)"
@@ -49,7 +52,6 @@ module SW
             # BackGrounder.load_las_points(las_file)
             
             type, thin = get_options(las_file.num_point_records)
-            
             unless type == :cancel # false is a Cancel
               import_las_file_points(las_file, ents, type, thin) if type
             else
@@ -191,7 +193,7 @@ module SW
         points
       end
 
-      # add points to mopdel as construction points
+      # add points to model as construction points
       #
       def add_points(pbar, ents, points, type)
         size = points.size
