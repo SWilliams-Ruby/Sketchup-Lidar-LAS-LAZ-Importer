@@ -12,7 +12,7 @@ module SW
       def thin(points, pbar, reduce_percent)
         pbar.label = "Total Progress"
         pbar.set_value(0.0)
-        refresh_pbar(pbar, "Thinning Data Set by #{(1 - reduce_percent) * 100}%", 0.0)
+        refresh_pbar(pbar, "Thinning Data Set by #{((1.0 - reduce_percent) * 100).to_i}%", 0.0)
         
         desired_size = points.size * reduce_percent
         cell_count = Math.sqrt(desired_size).to_i
@@ -30,10 +30,14 @@ module SW
         # Create bins. An array of arrays
         # sort points by x and y into an array of bins that is cell_count by cell_count in size
         # return random point from each cell
+        srand 1212 #randomizer seed
         bins = []
         results = []
         cell_count.times { |i| bins << [] }
-        points.each { |pt|   bins[(pt[0] - xmin)/devisorx] << pt }
+        points.each { |pt| bins[(pt[0] - xmin)/devisorx] << pt }
+        if pbar.update?
+            refresh_pbar(pbar, "Thinning Data Set by #{((1.0 - reduce_percent) * 100).to_i}%", 50.0)
+          end
         bins.each { |bin|
           bins2 = []
           cell_count.times { |i| bins2 << [] }  

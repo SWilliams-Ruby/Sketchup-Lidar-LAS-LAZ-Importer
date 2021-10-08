@@ -28,7 +28,7 @@ module SW
           pbar.set_value2(value)
           pbar.refresh
         end
-    
+
         def triangulate(pbar)
           dists = Array.new(@n, 0.0)
           ids = Array.new(@n, 0)
@@ -36,7 +36,6 @@ module SW
           min_y = Float::INFINITY
           max_x = -Float::INFINITY
           max_y = -Float::INFINITY
-          
           # compute bounds
           (0..@n - 1).each do |i|
             x = @coords[2 * i]

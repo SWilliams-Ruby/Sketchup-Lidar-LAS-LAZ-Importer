@@ -1,3 +1,4 @@
+
 require File.join(SW::LASimporter::PLUGIN_DIR, 'options')
 require File.join(SW::LASimporter::PLUGIN_DIR, 'thin_las')
 require File.join(SW::LASimporter::PLUGIN_DIR, 'las_file\public_header')

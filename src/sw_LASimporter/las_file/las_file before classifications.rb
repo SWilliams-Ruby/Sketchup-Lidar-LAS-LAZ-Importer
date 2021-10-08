@@ -43,7 +43,6 @@ module SW
       @public_header = nil
       @file_name_with_path = nil
       @loaded_points = nil
-      @user_selected_classifications = 0
 
       # Read the Public Header and
       # Variable Length Records
@@ -152,11 +151,7 @@ module SW
         @public_header
       end
       
-      def set_user_selected_classifications(user_selected_classifications)
-       @user_selected_classifications = user_selected_classifications
-      end
-      
-      def classified_points(pbar, ipu_horiz, ipu_vert)
+      def points()
         # parameters from the PUBLIC HEADER
         offset_to_point_data_records = @public_header.offset_to_point_data_records
         point_data_record_format = @public_header.point_data_record_format
@@ -178,80 +173,68 @@ module SW
           filemode << ':ASCII-8BIT'
         end
         
-        data = File.open(@file_name_with_path, filemode) {|f|
-          f.seek(offset_to_point_data_records, IO::SEEK_SET)
-          f.read
-        }
+        file = File.open(@file_name_with_path, filemode)
+        file.seek(offset_to_point_data_records, IO::SEEK_SET)
         
-        class_counts =[0] *32 # holds a running total of number of points added by classification
-        pts = []
+        # enumerate => array of [ X, Y, Z, point classification]
         count = 0
-        index = 0
-        loop {
-          break if (count += 1) > num_point_records
-          record = data[index..(index + point_data_record_length)]
-          index += point_data_record_length
-          # dump the record as a Hex string
-          #p record.each_byte.map { |b| b.to_s(16) }.join
-          
-          if pbar.update?
-            refresh_pbar(pbar, "Reading Point Data, Remaining points: #{num_point_records - count}",count * 100.0 /  num_point_records)
-          end
-          
-          
-          case point_data_record_format
-          when 0..5
-            classification = record[16].unpack('C')[0] & 0x1F              # Classification unsigned char 1 byte 
-            ptclass = 0b01 << classification
-            next if @user_selected_classifications & ptclass == 0
-
-            result = [
-              (record[0..3].unpack('l<')[0] * scaleX + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
-              (record[4..7].unpack('l<')[0] * scaleY + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
-              (record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ) * ipu_vert, # Z long 4 bytes 
-              #record[12..13].unpack('S')[0],                 # Intensity unsigned short 2 bytes
-              #record[14].unpack('C')[0],                     # Return Number 3 bits (bits 0, 1, 2) 3 bits
-                                                              # Number of Returns (given pulse) 3 bits (bits 3, 4, 5) 3 bits 
-                                                              # Scan Direction Flag 1 bit (bit 6) 1 bit
-                                                              # Edge of Flight Line 1 bit (bit 7) 1 bit 
-              # record[15].unpack('C')[0] & 0x1F,              # Classification unsigned char 1 byte 
-              classification
-              #record[16].unpack('C')[0],                     # Scan Angle Rank (-90 to +90) – Left side char 1 byte
-              #record[17].unpack('C')[0],                     # User Data unsigned char 1 byte
-              #record[18..19].unpack('S')[0],                 # Point Source ID unsigned short 2 bytes
-              #record[20..27].unpack('E')[0],                 # GPS Time double 8 bytes
-              #record[28..29].unpack('S')[0],                 # Red unsigned short 2 bytes
-              #record[30..31].unpack('S')[0],                 # Green unsigned short 2 bytes
-              #record[32..33].unpack('S')[0]                  # Blue unsigned short 2 bytes 
-              ]
+        #index = 0
+        Enumerator.new { |y|
+          loop {
+            break if (count += 1) > num_point_records
+            record = file.read(point_data_record_length)
+            
+            case point_data_record_format
+            when 0..5
+            
+              result = [
               
-          when 6..10 # formats 6 through 10
-            classification = record[16].unpack('C')[0]       # Classification unsigned char 1 byte 
-            ptclass = 0b01 << classification
-            next if @user_selected_classifications & ptclass == 0
-
-            result = [
-            (record[0..3].unpack('l<')[0] * scaleX + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
-            (record[4..7].unpack('l<')[0] * scaleY + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
-            (record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ) * ipu_vert, # Z long 4 bytes 
-              #record[12..13].unpack('S')[0],                # Intensity unsigned short 2 bytes
-              #record[14].unpack('C')[0],                    # 
-              #record[15].unpack('C')[0],              
-              #record[16].unpack('C')[0] & 0x1F,             # Classification unsigned char 1 byte 
-              classification
-              #record[17].unpack('C')[0],                    # User Data unsigned char 1 byte
-              #record[18..19].unpack('s')[0],                # Scan Angle Rank short 2 bytes
-              #record[20..21].unpack('S')[0]                 # Point Source ID unsigned short 2 bytes
-              #record[22..29].unpack('E')[0],                # GPS Time double 8 bytes
-              ]
-          else
-            raise LASimporterError, "LAS file - Point Data Record Format #{point_data_record_format} is not supported (yet)."
-          end
-          #p result
-          pts << result
-          class_counts[result[3]] += 1
+             
+                record[0..3].unpack('l<')[0] * scaleX + offsetX - minX,  # X long 4 bytes 
+                record[4..7].unpack('l<')[0] * scaleY + offsetY - minY,  # Y long 4 bytes
+                record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ, # Z long 4 bytes 
+                #record[12..13].unpack('S')[0],                 # Intensity unsigned short 2 bytes
+                #record[14].unpack('C')[0],                     # Return Number 3 bits (bits 0, 1, 2) 3 bits
+                                                                # Number of Returns (given pulse) 3 bits (bits 3, 4, 5) 3 bits 
+                                                                # Scan Direction Flag 1 bit (bit 6) 1 bit
+                                                                # Edge of Flight Line 1 bit (bit 7) 1 bit 
+                record[15].unpack('C')[0] & 0x1F,              # Classification unsigned char 1 byte 
+                
+                #record[16].unpack('C')[0],                     # Scan Angle Rank (-90 to +90) – Left side char 1 byte
+                #record[17].unpack('C')[0],                     # User Data unsigned char 1 byte
+                #record[18..19].unpack('S')[0],                 # Point Source ID unsigned short 2 bytes
+                #record[20..27].unpack('E')[0],                 # GPS Time double 8 bytes
+                #record[28..29].unpack('S')[0],                 # Red unsigned short 2 bytes
+                #record[30..31].unpack('S')[0],                 # Green unsigned short 2 bytes
+                #record[32..33].unpack('S')[0]                  # Blue unsigned short 2 bytes 
+                ]
+              
+              when 6..10 # formats 6 through 10
+                result = [
+                  record[0..3].unpack('l<')[0] * scaleX + offsetX - minX, # X long 4 bytes 
+                  record[4..7].unpack('l<')[0] * scaleY + offsetY - minY, # Y long 4 bytes
+                  record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ, # Z long 4 bytes 
+                  #record[12..13].unpack('S')[0],                # Intensity unsigned short 2 bytes
+                  #record[14].unpack('C')[0],                    # 
+                  #record[15].unpack('C')[0],              
+                                                           
+                  record[16].unpack('C')[0] & 0x1F,             # Classification unsigned char 1 byte 
+                  
+                  #record[17].unpack('C')[0],                    # User Data unsigned char 1 byte
+                  #record[18..19].unpack('s')[0],                # Scan Angle Rank short 2 bytes
+                  #record[20..21].unpack('S')[0]                 # Point Source ID unsigned short 2 bytes
+                  #record[22..29].unpack('E')[0],                # GPS Time double 8 bytes
+                  ]
+                  
+              else
+                raise LASimporterError, "LAS file - Point Data Record Format #{point_data_record_format} is not supported (yet)."
+              end
+              
+            #p result
+            y << result
+          }
+          
         }
-        [pts , class_counts]
       end
    
       def dump_public_header()
@@ -259,12 +242,7 @@ module SW
           puts "#{n} is #{v}"
         }
       end
-      
-      def refresh_pbar(pbar, label, value)
-        pbar.label2= label
-        pbar.set_value2(value)
-        pbar.refresh
-      end
+
     end
     
   end
