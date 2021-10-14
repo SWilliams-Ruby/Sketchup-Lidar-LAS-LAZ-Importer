@@ -27,7 +27,7 @@ The result will be a Sketchup Group containing the Lidar Data
 
 ![terrain](https://user-images.githubusercontent.com/88683212/136083260-4c448c8d-e9ee-40b9-9f27-cacfe13d88dd.jpg)
 
-###Note:  Depending on your version of Sketchup, you should probably use datasets with less than 50,000 points and/or 100,000 faces. Larger quantites may strain your patience.
+### Note:  Depending on your version of Sketchup, you should probably use datasets with less than 50,000 points and/or 100,000 faces. Larger quantites may strain your patience.
 
 
 
