@@ -177,6 +177,7 @@ module SW
      
       # Redraw the progress bar.
       def refresh()
+        SW::Util.raise_exception_on_escape if defined?(SW::Util.raise_exception_on_escape)
         # time_at_start_of_redraw = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         # Sketchup.active_model.active_view.refresh
         # @redraw_delay = Process.clock_gettime(Process::CLOCK_MONOTONIC) - time_at_start_of_redraw 
