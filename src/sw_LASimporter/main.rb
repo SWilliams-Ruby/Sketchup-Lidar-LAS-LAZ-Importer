@@ -39,10 +39,10 @@ module SW
         return if file_name_with_path.nil?
         log "Loading #{file_name_with_path}"
         @las_file = read_las_file(file_name_with_path)
-        get_import_options_2(self)
+        import_options = get_import_options_2()
+        import_file(*import_options) if import_options
         return Sketchup::Importer::ImportSuccess
       end
-        
         
       def import_file(type, thin, selected_regions, dump_details)
         begin
@@ -100,16 +100,10 @@ module SW
           log "Thinned Point Count: #{points.size}"
           
           case type
-          # when :surface
-            # #triangles = triangulate(pbar, ents, points) 
-            # triangles = triangulate_with_bbox(pbar, ents, points, las_file) 
-            # add_surface(pbar, ents, points, triangles) 
+
           when :surface2
-            #triangles = triangulate(pbar, ents, points) 
             triangles = triangulate_with_bbox(pbar, ents, points, las_file) 
             add_surface_large(pbar, ents, points, triangles) 
-          # when :SUContours
-            # add_via_contours(pbar, ents, points)
           else
             add_construction_points(pbar, ents, points)
           end
@@ -224,106 +218,27 @@ module SW
         
         coords = points.map { |e| [e[0], e[1]] }
         coords.flatten!
-        #triangles = Delaunator.triangulate(coords, pbar)
         triangulator = Delaunator::Triangulator.new(coords)
         triangles = triangulator.triangulate(pbar)
-        # hull = triangulator.hull
-        # draw_hull(ents, points, hull)
         triangles
       end
 
-      #experiment this is the Hull
-      #
-      # def draw_hull(ents, points, hull)
-        # grp = ents.add_group()
-        # hull_verts = hull.collect { |i| points[i]}
-        # hull_verts << hull_verts[0] # close the loop
-        # p *hull_verts
-        # grp.entities.add_edges(*hull_verts)
-      # end
-      
-      #####
-      #
-      # def add_surface(pbar, ents, points, triangles)
-        # start = 0
-        # count = 2000
-        # total = triangles.size/3
-        # pbar.label = "Total Progress"
-        # pbar.set_value(66.0)
-        # refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total}", 0.0)
-        # while start < total
-          # start = add_triangles(pbar, ents, points, triangles, start, count)
-          # start = total if start > total
-          # refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total - start}", start * 100.0/total)
-        # end
-      # end
-      
-      # Add 'count' triangles to the model
-      #
-      # def add_triangles(pbar, ents, points, triangles, start, count)
-        # mesh = Geom::PolygonMesh.new(points.size, count)
-        # points.each{ |pt| mesh.add_point(Geom::Point3d.new(pt[0..2])) }
-        # (start..(start + count - 1)).each { |i|
-          # k = i * 3
-          # break if k + 3 > triangles.size
-          # mesh.add_polygon(triangles[k+2] + 1, triangles[k+1] + 1, triangles[k] + 1)
-        # }
-        # ents.add_faces_from_mesh(mesh)
-        # # ents.fill_from_mesh(mesh, true, Geom::PolygonMesh::AUTO_SOFTEN)
-        # return start + count
-      # end
-       
+
       # experimental: make point sets smaller 
       #
       def add_surface_large(pbar, ents, points, triangles)
         log "Adding #{triangles.size/3} faces"
-        total = triangles.size/3
-        start = 0
-        ###count = total/10
-        ##count  = count > 2000 ? count + 1 : 2000
-        count  = total
-
         pbar.label = "Total Progress"
         pbar.set_value(66.0)
-        ###refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total}", 0.0)
         refresh_pbar(pbar, "Adding #{triangles.size/3} Faces, This may take a few seconds", 0)
-        add_triangles_large(ents, points, triangles, count) 
-
-        # while start < total
-          # pts, tris = remap_for_large(points, triangles, start, count)
-          # add_triangles_large(ents, pts, tris, count)
-          # start += count
-          # start = total if start > total
-          # refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total - start}", start * 100.0/total)
-        # end
+        add_triangles_large(ents, points, triangles) 
       end
-       
-      # remap points and triangles to a smaller subset
-      #
-      # def remap_for_large(points, triangles, start, count)
-        # n = 0
-        # h = {}
-        # pts=[]
-        # tris= []
-        # (start*3...(start*3 + count*3)).each { |i|
-          # break if i + 3 > triangles.size
-          # v = triangles[i]
-          # if h.include?(v)
-            # tris << h[v]  # point mapping already there    
-          # else
-            # pts << points[v]
-            # h[v] = n
-            # tris << n
-            # n += 1
-          # end
-        # }
-        # [pts, tris]
-      # end
      
       # Add 'count' triangles to the model
       #
-      def add_triangles_large(ents, points, triangles, count)
+      def add_triangles_large(ents, points, triangles)
         #tm = Time.now
+        count = triangles.size/3
         mesh = Geom::PolygonMesh.new(points.size, count)
         
         points.each { |pt| mesh.add_point(pt[0..2]) }
@@ -331,47 +246,12 @@ module SW
 
         count.times { |i|
           k = i * 3
-          break if k + 3 > triangles.size
           mesh.add_polygon(triangles[k+2] + 1, triangles[k+1] + 1, triangles[k] + 1)
         }
         #log 'Added triangles to mesh: ' + (Time.now - tm).to_s
-
-        # 0: Geom::PolygonMesh::NO_SMOOTH_OR_HIDE
-        # 1: Geom::PolygonMesh::HIDE_BASED_ON_INDEX (Negative point index will hide the edge.)
-        # 2: Geom::PolygonMesh::SOFTEN_BASED_ON_INDEX (Negative point index will soften the edge.)
-        # 4: Geom::PolygonMesh::AUTO_SOFTEN (Interior edges are softened.)
-        # 8: Geom::PolygonMesh::SMOOTH_SOFT_EDGES (All soft edges will also be smooth.)
         ents.fill_from_mesh(mesh, false, 0x0c, nil, nil)
-        #ents.add_faces_from_mesh(mesh)
         #log 'Added mesh to entities: ' + (Time.now - tm).to_s
-
       end
-
-      # add points to model as contours
-      #
-      # def add_via_contours(pbar, ents, points)
-        # size = points.size
-        # pbar.label = "Total Progress"
-        # pbar.set_value(50.0)
-        # refresh_pbar(pbar, "Adding Points, Remaining points: #{size}", 0.0)
-        # points.each_with_index{ |pt, i|
-          # ents.add_edges([pt[0],pt[1],pt[2]], [pt[0],pt[1],-1000])
-          # if i.modulo(5000) == 0
-            # refresh_pbar(pbar, "Adding Points, Remaining points: #{size - i}", \
-            # i * 100.0/size)
-          # end
-        # }
-        # pbar.label = "Total Progress"
-        # pbar.set_value(75.0)
-        # refresh_pbar(pbar, "Adding Surface, Please Wait", 0.0)
-        # model = Sketchup.active_model
-        # model.selection.clear
-        # model.selection.add(ents.to_a)
-        # tool = Sketchup::SandboxTools::FromContoursTool.new
-        # Sketchup.active_model.tools.push_tool(tool)
-        # ents.clear!
-      # end
-  
       
       def refresh_pbar(pbar, label, value)
         pbar.label2= label

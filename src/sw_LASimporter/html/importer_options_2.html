@@ -41,6 +41,7 @@
         <label for="details">Dump File Details to Console</label>
         </p>
         <input type="button" value="Import" onclick="importClicked()">
+        <input type="button" value="Cancel" onclick="cancelClicked()">
       </form>
     <td style = "width:20px;">
     </td>
@@ -85,11 +86,13 @@
 
 function importClicked(id) {
   sketchup.import_clicked(id);
+  window.close('','_parent','');
 }
 
-//function cancelClicked(id) {
-//  sketchup.cancel_clicked(id);
-//}
+function cancelClicked(id) {
+  sketchup.cancel_clicked(id);
+  window.close('','_parent','');
+}
 
 function typeClicked(id) {
   sketchup.type_clicked(id);
