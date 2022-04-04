@@ -11,13 +11,13 @@ Click Import.
 
 ![options1](https://user-images.githubusercontent.com/88683212/136084172-1bb84b37-641b-45fa-88e8-62b19ead15fd.jpg)
 
-The Import Type dialog will pop up giving you the choice to import the points as a Surface or as Construction Points
+The Import Type dialog will pop up giving you the choice to import the points as a Surface or as Construction Points, the amount to 'thin' the datapoints, and a toggle-able array of subregions to import.
 
-![type](https://user-images.githubusercontent.com/88683212/136083231-51d76a44-04ba-4202-b9d3-174650e0f284.jpg)
+![563x578](https://user-images.githubusercontent.com/88683212/161572288-484b1daf-66da-4da2-b064-3358b7fde970.jpg)
 
-The Thin To drop down allows you to reduce the size of the data set
 
-![thin](https://user-images.githubusercontent.com/88683212/136083238-5bad782e-5a9b-4497-a290-c551c506cf32.jpg)
+
+
 
 Wait for the points to import.
 
