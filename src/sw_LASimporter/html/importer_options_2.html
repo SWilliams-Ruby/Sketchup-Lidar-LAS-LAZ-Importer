@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+
+
+<table>
+  <tr>
+    <td>
+      <form action="/action_pthin.php">
+        <p><b>Import type:</b><br>
+        <input type="radio" id="type1" name="type" onclick="typeClicked(this.value)" value="Surface" checked="checked">
+        <label for="html">Surface</label><br>
+        <input type="radio" id="type21" name="type" onclick="typeClicked(this.value)" value="CPoints">
+        <label for="type2">Construction Points</label><br>
+        </p>
+            
+
+        <p><b>Thin to:</b><br>
+        <input type="radio" id="thin1" name="thin" onclick="thinClicked(this.value)" value="FullSize" checked="checked">
+        <label for="thin1">Full Size</label><br>
+        <input type="radio" id="thin2" name="thin" onclick="thinClicked(this.value)" value="50">
+        <label for="thin2">50%</label><br>  
+        <input type="radio" id="thin3" name="thin" onclick="thinClicked(this.value)" value="20">
+        <label for="thin3">20%</label><br>
+        <input type="radio" id="thin4" name="thin" onclick="thinClicked(this.value)" value="10">
+        <label for="thin4">10%</label><br>
+        <input type="radio" id="thin5" name="thin" onclick="thinClicked(this.value)" value="5">
+        <label for="thin5">5%</label><br>
+        <input type="radio" id="thin6" name="thin" onclick="thinClicked(this.value)" value="2">
+        <label for="thin6">2%</label><br>
+        <input type="radio" id="thin7" name="thin" onclick="thinClicked(this.value)" value="1">
+        <label for="thin7">1%</label><br>
+        <input type="radio" id="thin8" name="thin" onclick="thinClicked(this.value)" value="0.1">
+        <label for="thin8">0.1%</label><br>
+        </p>
+        <br>
+        <br>
+        <input type="checkbox" id="details" name="details" onclick="detailsClicked(this.checked)">
+        <label for="details">Dump File Details to Console</label>
+        </p>
+        <input type="button" value="Import" onclick="importClicked()">
+      </form>
+    <td style = "width:20px;">
+    </td>
+    <td style="vertical-align: top;">
+      <p><b>Select Subregions to Import</b><br> 
+      <table style="border-collapse: collapse; width: 180px; height: 180px;" border="1">
+      <tbody>
+        <tr>
+          <td onclick="regionClicked(this, 12)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 13)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 14)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 15)"  style="width: 25%;" > </td>
+        </tr>
+        <tr>
+          <td onclick="regionClicked(this, 8)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 9)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 10)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 11)"  style="width: 25%;" > </td>
+        </tr>
+        <tr>
+          <td onclick="regionClicked(this, 4)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 5)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 6)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 7)"  style="width: 25%;" > </td>
+        </tr>
+        <tr>
+          <td onclick="regionClicked(this, 0)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 1)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 2)"  style="width: 25%;" > </td>
+          <td onclick="regionClicked(this, 3)"  style="width: 25%;" > </td>
+        </tr>
+        </tbody>
+      </table></p>
+      
+    </td>
+  </tr>
+</table>
+    
+
+
+<script>
+
+function importClicked(id) {
+  sketchup.import_clicked(id);
+}
+
+//function cancelClicked(id) {
+//  sketchup.cancel_clicked(id);
+//}
+
+function typeClicked(id) {
+  sketchup.type_clicked(id);
+}
+
+function thinClicked(id) {
+  sketchup.thin_clicked(id);
+}
+
+function detailsClicked(state) {
+  sketchup.details_clicked(state);
+}
+
+function regionClicked(obj, id) {
+  includeRegion = obj.style.backgroundColor != "lightskyblue"
+  sketchup.region_clicked(id, includeRegion, {
+    onCompleted: function() {
+      if (includeRegion) {
+        obj.style.backgroundColor = "lightskyblue";
+      } else {
+        obj.style.backgroundColor = "white";
+      }
+      console.log('Ruby side done.');
+      }
+    });
+  //alert("Cell index is: " + x + ", " + y);
+}
+
+function closeWindow() {
+  window.close('','_parent','');
+}
+
+
+</script>
+
+</body>
+</html>

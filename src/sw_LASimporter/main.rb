@@ -6,12 +6,13 @@
 module SW
   module LASimporter
     class LASimporter < Sketchup::Importer
-      include Options
+      include ImporterOptions
+      include ImporterOptions2
       include ThinLas
       @@verbose = true
       
       def version()
-        '1.0.0'
+        '2.0.0'
       end
       
       def description
@@ -31,27 +32,28 @@ module SW
       end
 
       def do_options
-        set_import_options()
+        set_importer_options()
       end
     
       def load_file(file_name_with_path, status)
         return if file_name_with_path.nil?
+        log "Loading #{file_name_with_path}"
+        @las_file = read_las_file(file_name_with_path)
+        get_import_options_2(self)
+        return Sketchup::Importer::ImportSuccess
+      end
+        
+        
+      def import_file(type, thin, selected_regions, dump_details)
         begin
+          @las_file.dump_public_header if dump_details # debug info
           model = Sketchup.active_model
           ents = model.active_entities
           model.start_operation('LAS import', true)
             grp = ents.add_group
             grp.name = 'LAS_import'      
             ents = grp.entities
-            las_file = read_las_file(file_name_with_path)
-            # las_file.dump_public_header if @verbose# debug info
-            type, thin = get_options(las_file.num_point_records)
-            if type == :cancel # false is a Cancel
-              log 'Import Canceled'
-              model.abort_operation
-              return
-            end
-            result = import_las_file_points(las_file, ents, type, thin) if type
+            result = import_las_file_points(@las_file, ents, type, thin, selected_regions) if type
           model.commit_operation
           unless grp.deleted? || ents.size == 0
             Sketchup.active_model.active_view.zoom(grp)
@@ -84,30 +86,35 @@ module SW
       # @param type [String]
       # @param thin [Numerical]
       #
-      def import_las_file_points(las_file, ents, type, thin)
+      def import_las_file_points(las_file, ents, type, thin, selected_regions)
         ProgressBarBasicLASDoubleBar.new {|pbar|
-        t = Time.now
-        points = import_point_records(pbar, las_file, ents, type)
-        points.uniq!
-        return if points.size == 0
-        
-        points = thin(points, pbar, thin) if thin
-        
-        case type
-        when :surface
-          #triangles = triangulate(pbar, ents, points) 
-          triangles = triangulate_with_bbox(pbar, ents, points, las_file) 
-          add_surface(pbar, ents, points, triangles) 
-        when :surface2
-          #triangles = triangulate(pbar, ents, points) 
-          triangles = triangulate_with_bbox(pbar, ents, points, las_file) 
-          add_surface_large(pbar, ents, points, triangles) 
-        # when :SUContours
-          # add_via_contours(pbar, ents, points)
-        else
-          add_construction_points(pbar, ents, points)
-        end
-        log 'Elapsed time: ' + (Time.now - t).to_s        }
+          refresh_pbar(pbar, "Checking for duplicate points", 0.0)
+ 
+          t = Time.now
+          points = import_point_records(pbar, las_file, ents, selected_regions)
+          return if points.size == 0
+          
+
+          points.uniq!
+          points = thin(points, pbar, thin) if thin
+          log "Thinned Point Count: #{points.size}"
+          
+          case type
+          # when :surface
+            # #triangles = triangulate(pbar, ents, points) 
+            # triangles = triangulate_with_bbox(pbar, ents, points, las_file) 
+            # add_surface(pbar, ents, points, triangles) 
+          when :surface2
+            #triangles = triangulate(pbar, ents, points) 
+            triangles = triangulate_with_bbox(pbar, ents, points, las_file) 
+            add_surface_large(pbar, ents, points, triangles) 
+          # when :SUContours
+            # add_via_contours(pbar, ents, points)
+          else
+            add_construction_points(pbar, ents, points)
+          end
+          log 'Elapsed time: ' + (Time.now - t).to_s        
+        }
       end
   
       # Import the point records that match the user's import options i.e.
@@ -117,7 +124,7 @@ module SW
       # @param las_file [LASfile], 
       # @param ents [Sketchup::Entities]
       # @param pbar [SW::ProgressBarBasic]
-      # @param triangulate [Boolean]
+      ##### @param triangulate [Boolean]
       # @return array of points [Array]
       #
       # TODO: read the WKT/GEOTiff units from the file
@@ -126,19 +133,19 @@ module SW
       # 1 Yard (International):: Imperial/US length of 3 feet or 36 inches.
       # In 1959 defined in terms of metric units as exactly   meters.
       #
-      def import_point_records(pbar, las_file, ents, triangulate)
+      def import_point_records(pbar, las_file, ents, selected_regions)
         file = las_file.file_name_with_path.split("\\").last
         points = []
         num_point_records = las_file.num_point_records
-        user_selected_classifications = get_import_options_classes()
+        user_selected_classifications = get_importer_options_classes()
         
-        if import_options_horizontal_units() == "Meters"
+        if importer_options_horizontal_units() == "Meters"
           ipu_horiz = 39.3701 # meters to sketchup inches
         else
           ipu_horiz = 12.0 # feet to sketchup inches
         end
         
-        if import_options_vertical_units() == "Meters"
+        if importer_options_vertical_units() == "Meters"
           ipu_vert = 39.3701
         else
           ipu_vert = 12
@@ -150,6 +157,7 @@ module SW
         
         # las_file.points.take(10).each_with_index{|pt, i| # debug
         las_file.set_user_selected_classifications(user_selected_classifications)
+        las_file.set_selected_regions(selected_regions)
         points, class_counts = las_file.classified_points(pbar, ipu_horiz, ipu_vert)
 
         #p  "\nPoints by Classification"
@@ -268,7 +276,7 @@ module SW
       # experimental: make point sets smaller 
       #
       def add_surface_large(pbar, ents, points, triangles)
-        # log 'adding faces'
+        log "Adding #{triangles.size/3} faces"
         total = triangles.size/3
         start = 0
         ###count = total/10
@@ -278,7 +286,7 @@ module SW
         pbar.label = "Total Progress"
         pbar.set_value(66.0)
         ###refresh_pbar(pbar, "Adding Faces, Remaining faces: #{total}", 0.0)
-        refresh_pbar(pbar, "Adding Faces, This may take a few seconds", 0)
+        refresh_pbar(pbar, "Adding #{triangles.size/3} Faces, This may take a few seconds", 0)
         add_triangles_large(ents, points, triangles, count) 
 
         # while start < total
@@ -315,14 +323,19 @@ module SW
       # Add 'count' triangles to the model
       #
       def add_triangles_large(ents, points, triangles, count)
+        #tm = Time.now
         mesh = Geom::PolygonMesh.new(points.size, count)
-        points.each{ |pt| mesh.add_point(Geom::Point3d.new(pt[0..2])) }
+        
+        points.each { |pt| mesh.add_point(pt[0..2]) }
+        #log 'Added points to mesh: ' + (Time.now - tm).to_s
+
         count.times { |i|
           k = i * 3
           break if k + 3 > triangles.size
           mesh.add_polygon(triangles[k+2] + 1, triangles[k+1] + 1, triangles[k] + 1)
         }
-        
+        #log 'Added triangles to mesh: ' + (Time.now - tm).to_s
+
         # 0: Geom::PolygonMesh::NO_SMOOTH_OR_HIDE
         # 1: Geom::PolygonMesh::HIDE_BASED_ON_INDEX (Negative point index will hide the edge.)
         # 2: Geom::PolygonMesh::SOFTEN_BASED_ON_INDEX (Negative point index will soften the edge.)
@@ -330,6 +343,8 @@ module SW
         # 8: Geom::PolygonMesh::SMOOTH_SOFT_EDGES (All soft edges will also be smooth.)
         ents.fill_from_mesh(mesh, false, 0x0c, nil, nil)
         #ents.add_faces_from_mesh(mesh)
+        #log 'Added mesh to entities: ' + (Time.now - tm).to_s
+
       end
 
       # add points to model as contours
@@ -357,44 +372,6 @@ module SW
         # ents.clear!
       # end
   
-      def get_options(num_point_records)
-        prompts = ["Import Type", "Thin to"]
-        defaults = ["Surface", "Full Size"]
-        #list = ["Surface|Surface Large|CPoints|SU Sandbox Contours", "Full Size|50%|20%|10%|5%|2%|1%|0.1%"]
-        list = ["Surface|CPoints", "Full Size|50%|20%|10%|5%|2%|1%|0.1%"]
-        input = UI.inputbox(prompts, defaults, list, "Found #{num_point_records} points")
-        return :cancel unless input
-        case input[0]
-        # when 'Surface'
-        #  type = :surface
-        when 'Surface'
-          type = :surface2
-        # when 'SU Sandbox Contours'
-        #  type = :SUContours
-        else 
-          type = :cpoints
-        end
-        
-        case input[1]
-        when '0.1%'
-          thin = 0.001
-        when '1%'
-          thin = 0.01
-        when '2%'
-          thin = 0.02
-        when '5%'
-          thin = 0.05
-        when '10%'
-          thin = 0.1
-        when '20%'
-          thin = 0.2
-        when '50%'
-          thin = 0.5
-        else
-          thin = nil
-        end
-        [type, thin]
-      end
       
       def refresh_pbar(pbar, label, value)
         pbar.label2= label

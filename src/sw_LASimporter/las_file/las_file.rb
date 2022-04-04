@@ -44,6 +44,7 @@ module SW
       @file_name_with_path = nil
       @loaded_points = nil
       @user_selected_classifications = 0
+      @selected_regions = nil
 
       # Read the Public Header and
       # Variable Length Records
@@ -62,16 +63,16 @@ module SW
         # check the file version
         File.open(file_name_with_path, filemode) {|file|
           file.seek(24, IO::SEEK_SET)
-          major_version = file.read(1).unpack('C')[0]
-          minor_version = file.read(1).unpack('C')[0]
+          @major_version = file.read(1).unpack('C')[0]
+          @minor_version = file.read(1).unpack('C')[0]
           
-          if major_version != 1 or minor_version < 0 or minor_version > 4 
-            raise LASimporterError, "LAS file version #{major_version}.#{minor_version} is not supported (yet)."
+          if @major_version != 1 or @minor_version < 0 or @minor_version > 4 
+            raise LASimporterError, "LAS file version #{@major_version}.#{@minor_version} is not supported (yet)."
           end
           
           # read the blocks
-          read_public_header(file, minor_version)
-          read_variable_length_records(file, minor_version)
+          read_public_header(file, @minor_version)
+          # read_variable_length_records(file, @minor_version)
           
           # read the data
           file.seek(@public_header.offset_to_point_data_records, IO::SEEK_SET)
@@ -80,8 +81,12 @@ module SW
         }
       end # initialize
       
+      def version()
+        "2.0"
+      end
+      
       def read_public_header(file, minor_version)
-        case minor_version
+        case @minor_version
           when 0
             @public_header = PublicHeader_1_0.new(file)
 
@@ -98,7 +103,7 @@ module SW
             @public_header = PublicHeader_1_4.new(file)
 
           else 
-            raise LASimporterError, "LAS file version #{major_version}.#{minor_version} is not supported (yet)."
+            raise LASimporterError, "LAS file version #{@major_version}.#{@minor_version} is not supported (yet)."
         end
       end
 
@@ -111,35 +116,35 @@ module SW
       
       # Read the variable length records
       # currently these are just dumped to the console
-      def read_variable_length_records(file, minor_version)
-        # case minor_version
-          # when 0..3
-            # file.seek(227, IO::SEEK_SET) # start of variable length records
-              # @public_header.num_VLRecs.times {|i|
-              # puts "\nVariable Length Record #{i+1} of #{@public_header.num_VLRecs}"
-              # p reserved = file.read(2).unpack('S')[0]
-              # p user_ID = file.read(16)
-              # p record_ID = file.read(2).unpack('S')[0]
-              # p record_length_after_header = file.read(2).unpack('S')[0]
-              # p desc = file.read(32)
-              # p contents = file.read(record_length_after_header)
-            # }
+      def dump_variable_length_records(file)
+        case @minor_version
+          when 0..3
+            file.seek(227, IO::SEEK_SET) # start of variable length records
+              @public_header.num_VLRecs.times {|i|
+              puts "\nVariable Length Record #{i+1} of #{@public_header.num_VLRecs}"
+              p reserved = file.read(2).unpack('S')[0]
+              p user_ID = file.read(16)
+              p record_ID = file.read(2).unpack('S')[0]
+              p record_length_after_header = file.read(2).unpack('S')[0]
+              p desc = file.read(32)
+              p contents = file.read(record_length_after_header)
+            }
              
-          # when 4
-            # file.seek(@public_header.start_EVL, IO::SEEK_SET) # start of variable length records
-            # @public_header.num_EVL.times {|i|
-              # puts "\nVariable Length Record #{i+1} of #{@public_header.num_EVL}"
-              # p reserved = file.read(2).unpack('S')[0]
-              # p user_ID = file.read(16)
-              # p record_ID = file.read(2).unpack('S')[0]
-              # p record_length_after_header = file.read(2).unpack('S')[0]
-              # p desc = file.read(32)
-              # p contents = file.read(record_length_after_header)
-            # }
+          when 4
+            file.seek(@public_header.start_EVL, IO::SEEK_SET) # start of variable length records
+            @public_header.num_EVL.times {|i|
+              puts "\nVariable Length Record #{i+1} of #{@public_header.num_EVL}"
+              p reserved = file.read(2).unpack('S')[0]
+              p user_ID = file.read(16)
+              p record_ID = file.read(2).unpack('S')[0]
+              p record_length_after_header = file.read(2).unpack('S')[0]
+              p desc = file.read(32)
+              p contents = file.read(record_length_after_header)
+            }
 
-          # else 
-            # raise LASimporterError, "LAS file version #{major_version}.#{minor_version} is not supported (yet)."
-          # end 
+          else 
+            raise LASimporterError, "LAS file version #{@major_version}.#{@minor_version} is not supported (yet)."
+          end 
       end
 
       
@@ -154,6 +159,10 @@ module SW
       
       def set_user_selected_classifications(user_selected_classifications)
        @user_selected_classifications = user_selected_classifications
+      end
+      
+      def set_selected_regions(selected_regions)
+        @selected_regions = selected_regions
       end
       
       def classified_points(pbar, ipu_horiz, ipu_vert)
@@ -171,6 +180,17 @@ module SW
         minX = @public_header.minX
         minY = @public_header.minY
         minZ = @public_header.minZ
+        maxX = @public_header.maxX
+        maxY = @public_header.maxY
+        
+        # maxX is 2355417.99
+        # minX is 2354418.0300000003
+        # maxY is 290373.0
+        # minY is 289373.14
+        region_width = (maxX - minX) / 3.99
+        region_height = (maxY - minY) / 3.99
+        
+        
          
         # Open the file in binary mode with no encoding.
         filemode = 'rb'
@@ -204,10 +224,21 @@ module SW
             classification = record[16].unpack('C')[0] & 0x1F              # Classification unsigned char 1 byte 
             ptclass = 0b01 << classification
             next if @user_selected_classifications & ptclass == 0
+            
+            ptx = record[0..3].unpack('l<')[0] * scaleX
+            index_x = ((ptx - minX) / region_width).to_i
+            
+            pty = record[4..7].unpack('l<')[0] * scaleY
+            index_y = ((pty - minY) / region_height).to_i
+            
+            gg = index_x + 4 * index_y
+            puts "oops #{gg}" if gg> 15 or gg < 0
+            
+            next if @selected_regions && !@selected_regions.include?(index_x + 4 * index_y)
 
             result = [
-              (record[0..3].unpack('l<')[0] * scaleX + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
-              (record[4..7].unpack('l<')[0] * scaleY + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
+            (ptx + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
+            (pty + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
               (record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ) * ipu_vert, # Z long 4 bytes 
               #record[12..13].unpack('S')[0],                 # Intensity unsigned short 2 bytes
               #record[14].unpack('C')[0],                     # Return Number 3 bits (bits 0, 1, 2) 3 bits
@@ -229,10 +260,21 @@ module SW
             classification = record[16].unpack('C')[0]       # Classification unsigned char 1 byte 
             ptclass = 0b01 << classification
             next if @user_selected_classifications & ptclass == 0
+            
+            ptx = record[0..3].unpack('l<')[0] * scaleX
+            index_x = ((ptx - minX) / region_width).to_i
+            
+            pty = record[4..7].unpack('l<')[0] * scaleY
+            index_y = ((pty - minY) / region_height).to_i
+            
+            gg = index_x + 4 * index_y
+            puts "oops #{gg}" if gg> 15 or gg < 0
+            
+            next if @selected_regions && !@selected_regions.include?(index_x + 4 * index_y)
 
             result = [
-            (record[0..3].unpack('l<')[0] * scaleX + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
-            (record[4..7].unpack('l<')[0] * scaleY + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
+            (ptx + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
+            (pty + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
             (record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ) * ipu_vert, # Z long 4 bytes 
               #record[12..13].unpack('S')[0],                # Intensity unsigned short 2 bytes
               #record[14].unpack('C')[0],                    # 
@@ -248,6 +290,9 @@ module SW
             raise LASimporterError, "LAS file - Point Data Record Format #{point_data_record_format} is not supported (yet)."
           end
           #p result
+          
+          
+          
           pts << result
           class_counts[result[3]] += 1
         }
