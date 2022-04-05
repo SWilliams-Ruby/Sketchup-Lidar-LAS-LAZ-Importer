@@ -19,7 +19,7 @@ module SW
     )
     EXTENSION.creator     = "S. Williams"
     EXTENSION.description = "A Sketchup LAS Importer"
-    EXTENSION.version     = "2.0.0"
+    EXTENSION.version     = "2.0.1"
     EXTENSION.copyright   = "#{EXTENSION.creator} Copyright (c) 2022"
     Sketchup.register_extension(EXTENSION, true)
 
