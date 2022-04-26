@@ -9,5 +9,6 @@ require File.join(SW::LASimporter::PLUGIN_DIR, 'delaunator\triangulator')
 require File.join(SW::LASimporter::PLUGIN_DIR, 'delaunator\delaunator')
 require File.join(SW::LASimporter::PLUGIN_DIR, 'progress_bar_las\progress_bar_basic_las')
 require File.join(SW::LASimporter::PLUGIN_DIR, 'progress_bar_las\progress_bar_basic_las_double_bar')
+require File.join(SW::LASimporter::PLUGIN_DIR, 'sw_peekaboo.rb')
 require File.join(SW::LASimporter::PLUGIN_DIR, 'main')
 

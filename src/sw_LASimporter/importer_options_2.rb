@@ -30,6 +30,11 @@ module SW
             result = false
           end
         end
+        
+        def close
+          # and then SU8 does something different, What? 
+          @dialog.close if Sketchup.version.to_i > 8 
+        end
 
         def create_dialog()
            properties = {

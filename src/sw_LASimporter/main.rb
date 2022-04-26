@@ -39,7 +39,7 @@ module SW
         return if file_name_with_path.nil?
         log "Loading #{file_name_with_path}"
         @las_file = read_las_file(file_name_with_path)
-        import_options = get_import_options_2()
+        p import_options = get_import_options_2()
         import_file(*import_options) if import_options
         return Sketchup::Importer::ImportSuccess
       end
@@ -50,14 +50,16 @@ module SW
           model = Sketchup.active_model
           ents = model.active_entities
           model.start_operation('LAS import', true)
-            grp = ents.add_group
-            grp.name = 'LAS_import'      
-            ents = grp.entities
-            result = import_las_file_points(@las_file, ents, type, thin, selected_regions) if type
+            ProgressBarBasicLASDoubleBar.new {|pbar|
+              grp = ents.add_group
+              grp.name = 'LAS_import'      
+              ents = grp.entities
+              result = import_las_file_points(@las_file, pbar, ents, type, thin, selected_regions) if type
+              unless grp.deleted? || ents.size == 0
+                Sketchup.active_model.active_view.zoom(grp)
+              end
+            }
           model.commit_operation
-          unless grp.deleted? || ents.size == 0
-            Sketchup.active_model.active_view.zoom(grp)
-          end
           return Sketchup::Importer::ImportSuccess
         rescue => e
           model.abort_operation
@@ -86,8 +88,7 @@ module SW
       # @param type [String]
       # @param thin [Numerical]
       #
-      def import_las_file_points(las_file, ents, type, thin, selected_regions)
-        ProgressBarBasicLASDoubleBar.new {|pbar|
+      def import_las_file_points(las_file, pbar, ents, type, thin, selected_regions)
           refresh_pbar(pbar, "Checking for duplicate points", 0.0)
  
           t = Time.now
@@ -108,7 +109,6 @@ module SW
             add_construction_points(pbar, ents, points)
           end
           log 'Elapsed time: ' + (Time.now - t).to_s        
-        }
       end
   
       # Import the point records that match the user's import options i.e.

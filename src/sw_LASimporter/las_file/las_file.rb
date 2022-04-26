@@ -177,18 +177,19 @@ module SW
         offsetX = @public_header.offsetX
         offsetY = @public_header.offsetY
         offsetZ = @public_header.offsetZ
-        minX = @public_header.minX
-        minY = @public_header.minY
+        p maxX = @public_header.maxX
+        p minX = @public_header.minX
+        p maxY = @public_header.maxY
+        p minY = @public_header.minY
         minZ = @public_header.minZ
-        maxX = @public_header.maxX
-        maxY = @public_header.maxY
         
         # maxX is 2355417.99
         # minX is 2354418.0300000003
         # maxY is 290373.0
         # minY is 289373.14
-        region_width = (maxX - minX) / 3.99
-        region_height = (maxY - minY) / 3.99
+        
+        p region_width = (maxX - minX) / 3.99
+        p region_height = (maxY - minY) / 3.99
         
         
          
@@ -212,7 +213,8 @@ module SW
           record = data[index..(index + point_data_record_length)]
           index += point_data_record_length
           # dump the record as a Hex string
-          #p record.each_byte.map { |b| b.to_s(16) }.join
+          # p record.each_byte.map { |b| b.to_s(16) }.join
+          
           
           if pbar.update?
             refresh_pbar(pbar, "Reading Point Data, Remaining points: #{num_point_records - count}",count * 100.0 /  num_point_records)
@@ -221,19 +223,27 @@ module SW
           
           case point_data_record_format
           when 0..5
-            classification = record[16].unpack('C')[0] & 0x1F              # Classification unsigned char 1 byte 
+            # p '---'
+            classification = record[15].unpack('C')[0] & 0x1F              # Classification unsigned char 1 byte 
             ptclass = 0b01 << classification
             next if @user_selected_classifications & ptclass == 0
             
             ptx = record[0..3].unpack('l<')[0] * scaleX
-            index_x = ((ptx - minX) / region_width).to_i
+            index_x = ((ptx) / region_width).to_i
             
             pty = record[4..7].unpack('l<')[0] * scaleY
-            index_y = ((pty - minY) / region_height).to_i
+            index_y = ((pty) / region_height).to_i
+            
             
             gg = index_x + 4 * index_y
-            puts "oops #{gg}" if gg> 15 or gg < 0
             
+            #puts "#{ptx}, #{pty}"
+            
+            if gg > 15 or gg < 0
+              puts "oops #{gg}" 
+              break
+            end
+
             next if @selected_regions && !@selected_regions.include?(index_x + 4 * index_y)
 
             result = [
