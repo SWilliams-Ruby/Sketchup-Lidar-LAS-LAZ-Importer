@@ -228,12 +228,11 @@ module SW
             ptclass = 0b01 << classification
             next if @user_selected_classifications & ptclass == 0
             
-            ptx = record[0..3].unpack('l<')[0] * scaleX
-            index_x = ((ptx) / region_width).to_i
+            ptx = record[0..3].unpack('l<')[0] * scaleX + offsetX
+            index_x = ((ptx - minX) / region_width).to_i
             
-            pty = record[4..7].unpack('l<')[0] * scaleY
-            index_y = ((pty) / region_height).to_i
-            
+            pty = record[4..7].unpack('l<')[0] * scaleY + offsetY
+            index_y = ((pty - minY) / region_height).to_i
             
             gg = index_x + 4 * index_y
             
@@ -247,8 +246,8 @@ module SW
             next if @selected_regions && !@selected_regions.include?(index_x + 4 * index_y)
 
             result = [
-            (ptx + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
-            (pty + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
+            (ptx - minX) * ipu_horiz,  # X long 4 bytes 
+            (pty - minY) * ipu_horiz,  # Y long 4 bytes
               (record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ) * ipu_vert, # Z long 4 bytes 
               #record[12..13].unpack('S')[0],                 # Intensity unsigned short 2 bytes
               #record[14].unpack('C')[0],                     # Return Number 3 bits (bits 0, 1, 2) 3 bits
@@ -271,10 +270,10 @@ module SW
             ptclass = 0b01 << classification
             next if @user_selected_classifications & ptclass == 0
             
-            ptx = record[0..3].unpack('l<')[0] * scaleX
+            ptx = record[0..3].unpack('l<')[0] * scaleX + offsetX 
             index_x = ((ptx - minX) / region_width).to_i
             
-            pty = record[4..7].unpack('l<')[0] * scaleY
+            pty = record[4..7].unpack('l<')[0] * scaleY + offsetY 
             index_y = ((pty - minY) / region_height).to_i
             
             gg = index_x + 4 * index_y
@@ -283,8 +282,8 @@ module SW
             next if @selected_regions && !@selected_regions.include?(index_x + 4 * index_y)
 
             result = [
-            (ptx + offsetX - minX) * ipu_horiz,  # X long 4 bytes 
-            (pty + offsetY - minY) * ipu_horiz,  # Y long 4 bytes
+            (ptx - minX) * ipu_horiz,  # X long 4 bytes 
+            (pty - minY) * ipu_horiz,  # Y long 4 bytes
             (record[8..11].unpack('l<')[0] * scaleZ + offsetZ - minZ) * ipu_vert, # Z long 4 bytes 
               #record[12..13].unpack('S')[0],                # Intensity unsigned short 2 bytes
               #record[14].unpack('C')[0],                    # 

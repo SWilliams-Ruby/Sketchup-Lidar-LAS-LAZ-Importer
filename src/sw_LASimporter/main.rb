@@ -1,3 +1,8 @@
+###################
+# las2las -i *.laz -merged  -thin_with_grid 20.0 -o merged2.las
+#############
+
+
 # A Sketchup extension to import Lidar LAS files
 # Usage: In Sketchup select File > Import
 # select  *.las in the file type dropdown list
