@@ -12,8 +12,3 @@ require File.join(SW::LASimporter::PLUGIN_DIR, 'progress_bar_las\progress_bar_ba
 require File.join(SW::LASimporter::PLUGIN_DIR, 'sw_peekaboo.rb')
 require File.join(SW::LASimporter::PLUGIN_DIR, 'main')
 
-require File.join(SW::LASimporter::PLUGIN_DIR, 'las2las\loader')
-
-
-
-

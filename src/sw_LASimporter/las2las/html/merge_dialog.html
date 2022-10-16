@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+
+
+<table>
+  <tr>
+    <td>
+      <form>
+        <p><b>Thin to Grid Size:</b><br>
+        <input type="radio" id="thin1" name="thin" onclick="thinClicked(this.value)" value="FullSize">
+        <label for="thin1">Full Size</label><br>
+        <input type="radio" id="thin2" name="thin" onclick="thinClicked(this.value)" value="200">
+        <label for="thin2">200</label><br>  
+        <input type="radio" id="thin3" name="thin" onclick="thinClicked(this.value)" value="100">
+        <label for="thin3">100</label><br>
+        <input type="radio" id="thin4" name="thin" onclick="thinClicked(this.value)" value="50">
+        <label for="thin4">50</label><br>
+        <input type="radio" id="thin5" name="thin" onclick="thinClicked(this.value)" value="20">
+        <label for="thin5">20</label><br>
+        <input type="radio" id="thin6" name="thin" onclick="thinClicked(this.value)" value="10" checked="checked">
+        <label for="thin6">10</label><br>
+        <input type="radio" id="thin7" name="thin" onclick="thinClicked(this.value)" value="5">
+        <label for="thin7">5</label><br>
+        <input type="radio" id="thin8" name="thin" onclick="thinClicked(this.value)" value="2">
+        <label for="thin8">2</label><br>
+        <input type="radio" id="thin8" name="thin" onclick="thinClicked(this.value)" value="1">
+        <label for="thin8">1</label><br>
+        </p>
+        <br>
+        <p><b>Merge Status: &nbsp &nbsp</b><span id="status"> Click the Merge Button to start the processing </span>
+        <br>
+        <br>
+        <br>
+        <input type="button" value="Merge" onclick="mergeClicked()">
+        <input type="button" value="Cancel" onclick="cancelClicked()">
+        <input type="button" value="Close" onclick="closeClicked()">
+      </form>
+    
+  </tr>
+</table>
+    
+
+
+<script>
+
+function closeClicked(id) {
+  sketchup.close_clicked(id);
+  window.close('','_parent','');
+}
+
+function mergeClicked(id) {
+  sketchup.merge_clicked(id);
+  //window.close('','_parent','');
+}
+
+function cancelClicked(id) {
+  sketchup.cancel_clicked(id);
+  //window.close('','_parent','');
+}
+
+function thinClicked(id) {
+  sketchup.thin_clicked(id);
+}
+
+function closeWindow() {
+  window.close('','_parent','');
+}
+
+
+</script>
+
+</body>
+</html>
