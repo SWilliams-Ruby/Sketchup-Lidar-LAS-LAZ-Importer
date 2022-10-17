@@ -58,6 +58,7 @@ module SW
         unless @merge_cancelled
           puts 'Merge Completed'
           @merge_thread_results.gsub!(/\n/,"<br>")
+          @merge_thread_results.gsub!(/\\/,"&bsol;")
           @merge_thread_results.gsub!(/'/,"&apos;")
           dialog.update_element('status', 'Merge Completed')
           dialog.update_element('results', @merge_thread_results)
