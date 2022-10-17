@@ -1,54 +1,13 @@
 module SW
   module Las2Las
-
+    # 
     def self.entry()
       @filepaths = show_file_open_dialog()
-      show_merge_dialog( @filepaths ) if @filepaths
+      show_merge_dialog( @filepaths ) if @filepaths # See: merge_dialog.exe
     end
-    
-    def self.cancel_merge( dialog )
-      @merge_cancelled = true
-      dialog.update_element('status', 'Merge Cancelled')
-      begin 
-        Process.kill("KILL", @popen_processID ) if @popen_processID  
-      rescue
-      end
-      #@thr.exit if @thr
-    end
-
-    def self.merge_files( dialog, filepaths, thin_to_grid )
-      @merge_cancelled = false
-      @popen_processID  = nil
-      dialog.update_element('status', 'Processing')
-      UI.start_timer(0) { defered_run_and_wait( dialog, filepaths, thin_to_grid ) }
-    end
-
-    # defer processing to allow javascript to run
-    #
-    def self.defered_run_and_wait( dialog, filepaths, thin_to_grid )
-      @merge_thread_results = ""
-      run_merge_thread( filepaths, thin_to_grid )
-      UI.start_timer(1) { check_for_thread_death( dialog, 'Processing ', Time.now) }
-    end
-    
-    def self.check_for_thread_death( dialog, status, start_time )
-      if !@merge_cancelled and @thr.alive? and (Time.now - start_time) < 20
-        status << '>'
-        dialog.update_element('status', status)
-        UI.start_timer(1) { check_for_thread_death( dialog, status, start_time ) }
-      else
-        unless @merge_cancelled
-          puts 'Merge Completed'
-          puts @merge_thread_results
-          dialog.update_element('status', 'Merge Completed')
-        end
-      end
-    end
-    
-    
+ 
     # Open the file picker application
     # 
-    #
     def self.show_file_open_dialog()
       filepaths = []
       env = {}
@@ -61,27 +20,69 @@ module SW
           filepaths << filepath
         end
       }
-      #puts filepaths.size
-      #puts filepaths
       filepaths
     end
     
+    def self.cancel_merge( dialog )
+      @merge_cancelled = true
+      dialog.update_element('status', 'Merge Cancelled')
+      begin 
+        Process.kill("KILL", @popen_processID ) if @popen_processID  
+      rescue
+      end
+      #@thr.exit if @thr
+    end
+
+    # defer processing to allow javascript to run
+    #
+    def self.merge_files( dialog, filepaths, thin_to_grid )
+      @merge_cancelled = false
+      @popen_processID  = nil
+      dialog.update_element('status', 'Processing')
+      dialog.update_element('results', '')
+      UI.start_timer(0) { deferred_run_and_wait( dialog, filepaths, thin_to_grid ) }
+    end
+
+    def self.deferred_run_and_wait( dialog, filepaths, thin_to_grid )
+      @merge_thread_results = ""
+      execute_las2las_thread( filepaths, thin_to_grid )
+      UI.start_timer(1) { check_for_thread_death( dialog, 'Processing ', Time.now) }
+    end
     
-    def self.run_merge_thread( filepaths, thin_to_grid )
+    def self.check_for_thread_death( dialog, status, start_time )
+      if !@merge_cancelled and @thr.alive? and (Time.now - start_time) < 100
+        status << '>'
+        dialog.update_element('status', status)
+        UI.start_timer(1) { check_for_thread_death( dialog, status, start_time ) }
+      else
+        unless @merge_cancelled
+          puts 'Merge Completed'
+          @merge_thread_results.gsub!(/\n/,"<br>")
+          @merge_thread_results.gsub!(/'/,"&apos;")
+          dialog.update_element('status', 'Merge Completed')
+          dialog.update_element('results', @merge_thread_results)
+        end
+      end
+    end
+
+    # Popen las2lasw.exe to merge and thin the the selected files
+    # las2lasw.exe is las2las.exe marked as a SYSTEM/WINDOWS application in the Process Environment (PE) Header 
+    #
+    def self.execute_las2las_thread( filepaths, thin_to_grid )
       @thr = Thread.new {
         env = {}
         prog = File.join( SW::LASimporter::PLUGIN_DIR, 'las2las/bin/las2lasw.exe' )
         filepaths.each { |path| path.strip!}
+        filename = "\\merged_Files#{filepaths.size}_Grid#{thin_to_grid}.las"
         
-        # construct arguements to las2lasw.exe
-        # las2lasw.exe is an exe with the SYSTEM/WINDOWS value set in the Process Environment (PE) Header 
+        # construct arguments to las2lasw.exe
         args = [
-          "-very_verbose",
+          "-v",
           "-i",
           *filepaths,
           "-merged",
           "-o",
-          File.dirname(filepaths[0]) + "\\merged.las"
+          File.dirname(filepaths[0]) + filename
         ]
 
         # add thinning requirement

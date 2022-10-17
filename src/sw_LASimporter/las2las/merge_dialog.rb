@@ -28,7 +28,7 @@ module SW
       end
       
       def update_element(element, text)
-        js_command = "document.getElementById('#{element}').textContent='#{text}';"
+        js_command = "document.getElementById('#{element}').innerHTML='#{text}';"
         @dialog.execute_script(js_command)
       end
 
