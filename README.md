@@ -8,7 +8,8 @@ Merge Usage:
 
 Extensions > Merge LAZ/LAS Files
 
-![Extensions](https://user-images.githubusercontent.com/88683212/196270410-9d5f3d28-2410-4bf1-bd4a-c34350eebe2c.png)
+
+![Extensions](https://user-images.githubusercontent.com/88683212/196273420-db2558b5-625e-4938-83f9-bcd2e3b2b28a.png)
 
 
 Select one or more files that will be merged and converted into the LAS file format
@@ -52,7 +53,7 @@ The result will be a Sketchup Group containing the Lidar Data
 
 ![terrain](https://user-images.githubusercontent.com/88683212/136083260-4c448c8d-e9ee-40b9-9f27-cacfe13d88dd.jpg)
 
-### Note:  Depending on your version of Sketchup, you should probably use datasets with less than 50,000 points and/or 100,000 faces. Larger quantites may strain your patience.
+#### Note:  Depending on your version of Sketchup, you should probably use datasets with less than 50,000 points and/or 100,000 faces. Larger quantites may strain your patience.
 
 
 
