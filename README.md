@@ -1,5 +1,30 @@
 # Sketchup-Lidar-LAS-LAZ-Importer
-Usage:
+
+### STEP 1
+
+Merge multiple LAZ and LAS files into a single LAS file the will be imported into Skecthup. 
+
+Merge Usage:
+
+Extensions > Merge LAZ/LAS Files
+
+![Extensions](https://user-images.githubusercontent.com/88683212/196270410-9d5f3d28-2410-4bf1-bd4a-c34350eebe2c.png)
+
+
+Select one or more files that will be merged and converted into the LAS file format
+
+![selectfiles](https://user-images.githubusercontent.com/88683212/196270599-dc99051e-4b9f-4862-a9c9-e7b1f5d4931e.png)
+
+
+Select the Grid spacing to sub-sample the input files and Click Merge. The output file name will be displayed in the 'Results:' area after the merge has completed.
+
+![mergeoptions](https://user-images.githubusercontent.com/88683212/196270775-81165f53-454a-41c4-8418-5df7f20e841d.png)
+
+
+
+### STEP 2
+
+Importer Usage:
 
 File > Menu > Import
 Select Lidar las Importer *.las
