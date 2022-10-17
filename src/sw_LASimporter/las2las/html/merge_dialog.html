@@ -3,8 +3,6 @@
 <head>
 </head>
 <body>
-
-
 <table>
   <tr>
     <td>
@@ -30,25 +28,25 @@
         <label for="thin8">1</label><br>
         </p>
         <br>
-        <p><b>Merge Status: &nbsp &nbsp</b><span id="status"> Click the Merge Button to start the processing </span>
+        <p><b>Merge Status: &nbsp &nbsp</b><span id="status"> Click the Merge Button to start processing </span>
         <br>
         <p><b>Results: &nbsp &nbsp</b>
         <br><span id="results"></span>
         <br>
         <br>
         <br>
-        <input type="button" value="Merge" onclick="mergeClicked()">
-        <input type="button" value="Cancel" onclick="cancelClicked()">
+        <input type="button" value="Merge" onclick="mergeClicked()">&nbsp
+        <input type="button" value="Cancel" onclick="cancelClicked()">&nbsp
         <input type="button" value="Close" onclick="closeClicked()">
       </form>
-    
+      <br>
+      <br>
+      File merging is accomplished via las2las.exe<br> 
+      by info@rapidlasso.de  - https://rapidlasso.de<br>
   </tr>
 </table>
-    
-
-
+ 
 <script>
-
 function closeClicked(id) {
   sketchup.close_clicked(id);
   window.close('','_parent','');
@@ -56,7 +54,6 @@ function closeClicked(id) {
 
 function mergeClicked(id) {
   sketchup.merge_clicked(id);
-  //window.close('','_parent','');
 }
 
 function cancelClicked(id) {
@@ -72,8 +69,6 @@ function closeWindow() {
   window.close('','_parent','');
 }
 
-
 </script>
-
 </body>
 </html>
