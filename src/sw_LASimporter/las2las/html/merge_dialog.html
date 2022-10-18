@@ -7,6 +7,14 @@
   <tr>
     <td>
       <form>
+        <p><b>Classifications to keep:</b><br>
+        <input type="radio" id="classification1" name="classification" onclick="classificationClicked(this.value)" value="All">
+        <label for="classification1">All</label><br>
+        <input type="radio" id="classification2" name="classification" onclick="classificationClicked(this.value)" value="Ground">
+        <label for="classification2">Ground</label><br>  
+        <input type="radio" id="classification3" name="classification" onclick="classificationClicked(this.value)" value="Ground_and_Water" checked="checked">
+        <label for="classification3">Ground & Water</label>
+        </p>
         <p><b>Thin to Grid Size:</b><br>
         <input type="radio" id="thin1" name="thin" onclick="thinClicked(this.value)" value="FullSize">
         <label for="thin1">Full Size</label><br>
@@ -59,6 +67,10 @@ function mergeClicked(id) {
 function cancelClicked(id) {
   sketchup.cancel_clicked(id);
   //window.close('','_parent','');
+}
+
+function classificationClicked(id) {
+  sketchup.classification_clicked(id);
 }
 
 function thinClicked(id) {

@@ -15,7 +15,8 @@ module SW
       def initialize(filepaths)
         @filepaths = filepaths
         @dialog = create_dialog()
-        @thin_to = "10"
+        @grid_size = "10"
+        @classifications = "Ground_and_Water"
       end
       
       def open
@@ -60,7 +61,7 @@ module SW
         
         dialog.add_action_callback("merge_clicked") { |action_context|
           puts 'merge clicked'
-          SW::Las2Las.merge_files( self, @filepaths, @thin_to )
+          SW::Las2Las.merge_files( self, @filepaths, @grid_size, @classifications )
         }
         
         dialog.add_action_callback("cancel_clicked") { |action_context, state|
@@ -68,9 +69,13 @@ module SW
           SW::Las2Las.cancel_merge( self )
         }
 
+        dialog.add_action_callback("classification_clicked") { |action_context, state|
+          @classifications = state
+        }
+        
         dialog.add_action_callback("thin_clicked") { |action_context, state|
-          @thin_to = state
-          # puts @thin_to
+          @grid_size = state
+          # puts @grid_size
         }
         
         return dialog

@@ -1,6 +1,7 @@
 module SW
   module Las2Las
-    # 
+    @max_run_time = 100.0
+    
     def self.entry()
       @filepaths = show_file_open_dialog()
       show_merge_dialog( @filepaths ) if @filepaths # See: merge_dialog.exe
@@ -35,28 +36,30 @@ module SW
 
     # defer processing to allow javascript to run
     #
-    def self.merge_files( dialog, filepaths, thin_to_grid )
+    def self.merge_files( dialog, filepaths, grid_size, classifications)
       @merge_cancelled = false
       @popen_processID  = nil
       dialog.update_element('status', 'Processing')
       dialog.update_element('results', '')
-      UI.start_timer(0) { deferred_run_and_wait( dialog, filepaths, thin_to_grid ) }
+      UI.start_timer(0) { deferred_run_and_wait( dialog, filepaths, grid_size, classifications ) }
     end
 
-    def self.deferred_run_and_wait( dialog, filepaths, thin_to_grid )
+    def self.deferred_run_and_wait( dialog, filepaths, grid_size, classifications )
       @merge_thread_results = ""
-      execute_las2las_thread( filepaths, thin_to_grid )
+      execute_las2las_thread( filepaths, grid_size, classifications )
       UI.start_timer(1) { check_for_thread_death( dialog, 'Processing ', Time.now) }
     end
     
     def self.check_for_thread_death( dialog, status, start_time )
-      if !@merge_cancelled and @thr.alive? and (Time.now - start_time) < 100
+      if !@merge_cancelled and @thr.alive? and (Time.now - start_time) < @max_run_time
         status << '>'
         dialog.update_element('status', status)
+        # dialog.update_element('results', @merge_thread_results) # to debug thread info
         UI.start_timer(1) { check_for_thread_death( dialog, status, start_time ) }
       else
         unless @merge_cancelled
           puts 'Merge Completed'
+          p @merge_thread_results
           @merge_thread_results.gsub!(/\n/,"<br>")
           @merge_thread_results.gsub!(/\\/,"&bsol;")
           @merge_thread_results.gsub!(/'/,"&apos;")
@@ -69,38 +72,54 @@ module SW
     # Popen las2lasw.exe to merge and thin the the selected files
     # las2lasw.exe is las2las.exe marked as a SYSTEM/WINDOWS application in the Process Environment (PE) Header 
     #
-    def self.execute_las2las_thread( filepaths, thin_to_grid )
+    def self.execute_las2las_thread( filepaths, grid_size, classifications )
+       p classifications
       @thr = Thread.new {
-        env = {}
-        prog = File.join( SW::LASimporter::PLUGIN_DIR, 'las2las/bin/las2lasw.exe' )
-        filepaths.each { |path| path.strip!}
-        filename = "\\merged_Files#{filepaths.size}_Grid#{thin_to_grid}.las"
-        
-        # construct arguments to las2lasw.exe
-        args = [
-          "-v",
-          "-i",
-          *filepaths,
-          "-merged",
-          "-o",
-          File.dirname(filepaths[0]) + filename
-        ]
+        begin
+          env = {}
+          prog = File.join( SW::LASimporter::PLUGIN_DIR, 'las2las/bin/las2lasw.exe' )
+          filepaths.each { |path| path.strip!}
+          outfilename = "\\merged_Files#{filepaths.size}_Grid#{grid_size}_#{classifications}.las"
+   
+          # construct arguments to las2lasw.exe
+          args = [
+            "-v",
+            "-i",
+            *filepaths,
+            "-merged",
+            "-o",
+            File.dirname(filepaths[0]) + outfilename
+          ]
 
-        # add thinning requirement
-        unless thin_to_grid == "FullSize"  
-          args << "-thin_with_grid"
-          args << thin_to_grid
-        end
-        
-        cmd  = [env, prog, *args, :err=>[:child, :out] ]
-        IO.popen(cmd, mode = 'a+') { |stream|
-          @popen_processID = stream.pid
-          until stream.eof? do
-            @merge_thread_results << stream.readline
-            #puts stream.readline
+          # add thinning requirement
+          unless grid_size == "FullSize"  
+            args << "-thin_with_grid"
+            args << grid_size
           end
-        }
-        @popen_processID = nil
+          
+          unless classifications == "All"
+            args << "-keep_class"
+            if classifications == "Ground"
+               args << "2" # ground
+            else
+               args << "2"
+               args << "9" # water
+            end
+          end
+          # @merge_thread_results << args.to_s # debug info
+          
+          cmd  = [env, prog, *args, :err=>[:child, :out] ]
+          IO.popen(cmd, mode = 'a+') { |stream|
+            @popen_processID = stream.pid
+            until stream.eof? do
+              @merge_thread_results << stream.readline
+              #puts stream.readline
+            end
+          }
+          @popen_processID = nil
+        rescue => exception
+          @merge_thread_results << exception.message
+        end
       }
     end
 
